@@ -38,7 +38,7 @@ $\bm{\theta}$, the contribution of each principal component to thermal sensitivi
 We also implemented a nonlinear model to relate observed air and water temperatures. We consider the nonlinear model due to the established nonlinear behaviors of water temperature at high and low air temperatures [@mohseni1998a]. Following @mohseni1998a, we replace Eq. \@ref(eq:Linear) with
 
 \begin{equation}
-  g(\epsilon_i, \zeta_i, \beta_i, \kappa_i, \text{T}_{Ai,t}) = \epsilon_i + \frac{\zeta_i - \epsilon_i}{1 + e^{\beta_i(\beta - \text{T}_{Ai,t})}},
+  g(\epsilon_i, \zeta_i, \beta_i, \kappa_i, \text{T}_{Ai,t}) = \epsilon_i + \frac{\zeta_i - \epsilon_i}{1 + e^{\beta_i(\kappa_i - \text{T}_{Ai,t})}},
   (\#eq:MohseniModel)
 \end{equation}
 

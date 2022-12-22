@@ -45,8 +45,8 @@ library(knitr)        # For making tidy tables
 run_dir <- here::here("results", params$run_name)
 
 # Load figures and tables to include
-load(file = file.path(run_dir, "plots.rdata"))
-load(file = file.path(run_dir, "tables.rdata"))
+#load(file = file.path(run_dir, "plots.rdata"))
+#load(file = file.path(run_dir, "tables.rdata"))
 ```
 
 \newpage

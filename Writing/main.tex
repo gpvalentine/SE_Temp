@@ -1,0 +1,241 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{dvipsnames,svgnames,x11names}{xcolor}
+%
+\documentclass[
+  11pt,
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[left = 2.5cm, right = 2cm, top = 2cm, bottom = 2cm]{geometry}
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{5}
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newlength{\cslentryspacingunit} % times entry-spacing
+\setlength{\cslentryspacingunit}{\parskip}
+\newenvironment{CSLReferences}[2] % #1 hanging-ident, #2 entry spacing
+ {% don't indent paragraphs
+  \setlength{\parindent}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1
+  \let\oldpar\par
+  \def\par{\hangindent=\cslhangindent\oldpar}
+  \fi
+  % set entry spacing
+  \setlength{\parskip}{#2\cslentryspacingunit}
+ }%
+ {}
+\usepackage{calc}
+\newcommand{\CSLBlock}[1]{#1\hfill\break}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{#1}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{#1}\break}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
+\usepackage[left]{lineno}
+\linenumbers
+\pagenumbering{gobble}
+\usepackage{sectsty}
+\usepackage{setspace}\spacing{1.5}
+\usepackage{bm}
+\DeclareUnicodeCharacter{0008}{ }
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same} % disable monospaced font for URLs
+\hypersetup{
+  pdftitle={Landscape variables characterize thermal stability in Southeastern US Brook Trout streams},
+  pdfauthor={George Valentine, Dept. Fish, Wildlife, \& Conservation Biology, Colorado State University, george.valentine@colostate.edu; Xinyi Lu, Dept. Fish, Wildlife, \& Conservation Biology, Colorado State University; C. Andrew Dolloff, U.S. Forest Service Southern Research Station; Mevin Hooten, Dept. Statistics \& Data Sciences, University of Texas at Austin; Yoichiro Kanno, Dept. Fish, Wildlife, \& Conservation Biology, Colorado State University},
+  colorlinks=true,
+  linkcolor={blue},
+  filecolor={Maroon},
+  citecolor={Blue},
+  urlcolor={Blue},
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Landscape variables characterize thermal stability in Southeastern US Brook Trout streams}
+\author{George Valentine, Dept. Fish, Wildlife, \& Conservation Biology, Colorado State University, \href{mailto:george.valentine@colostate.edu}{\nolinkurl{george.valentine@colostate.edu}} \and Xinyi Lu, Dept. Fish, Wildlife, \& Conservation Biology, Colorado State University \and C. Andrew Dolloff, U.S. Forest Service Southern Research Station \and Mevin Hooten, Dept. Statistics \& Data Sciences, University of Texas at Austin \and Yoichiro Kanno, Dept. Fish, Wildlife, \& Conservation Biology, Colorado State University}
+\date{2022-12-22}
+
+\begin{document}
+\maketitle
+
+{
+\hypersetup{linkcolor=}
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
+\newpage
+
+\hypertarget{abstract}{%
+\section{Abstract}\label{abstract}}
+
+\newpage
+\pagenumbering{arabic}
+
+\hypertarget{introduction}{%
+\section{Introduction}\label{introduction}}
+
+\newpage
+
+\hypertarget{methods}{%
+\section{Methods}\label{methods}}
+
+\hypertarget{dataset-and-study-area}{%
+\subsection{Dataset and Study Area}\label{dataset-and-study-area}}
+
+We considered paired air and water temperature data from 168 sites throughout the southern Appalachian region of the USA (Fig. X). Sites were subsetted from 204 randomly selected subwatersheds identified as capable of supporting populations of brook trout {[}\emph{Salvelinus fontinalis}; (\textbf{ebtjv2006?}){]}. Located at the downstream outlet of the subwatersheds, at each site a logger underwater was paired with a logger affixed to the bank or a tree. Stream and air temperatures were measured every 30 minutes using remote loggers (Onset Computer Corporation, 470 MacArthur Blvd. Bourne, MA 02532). Loggers were deployed from 2011 to 2015. For model fitting, we summarized temperatures to daily and weekly maximums, a reflection of the thermal sensitivity of coldwater organisms.
+
+Each site was linked using a GIS to the National Hydrography Dataset {[}NHDplus v2.1; U.S. Geological Survey (2016){]} stream segment on which it is located. Using the NHDplus COMID code for each segment, we then accessed associated landscape metrics from the NHDplus and the Environmental Protection Agency StreamCat database (Hill et al., 2016). Together, these sources contributed 174 variables for each segment (Appendix X).
+
+\hypertarget{principal-components-analysis}{%
+\subsection{Principal Components Analysis}\label{principal-components-analysis}}
+
+We performed a Bayesian principal components analysis (PCA) of the segment-level NHDplus and StreamCat predictors at \textgreater9,000 sites of known BKT habitat obtained through EcoSHEDS (www.usgs.gov/apps/ecosheds) and the Eastern Brook Trout Joint Venture (\textbf{ebtjv2006?}). We used Bayesian PCA due to its ability to take N/A values in inputs. Analysis was completed using the ``pcaMethods'' package in R (R Core Team, 2022; Stacklies et al., 2007). We then extracted the top ten loadings by absolute value for the first five principle components (cumulative r\(^2\): 0.61). Lastly, we extracted PCA scores for the stream segments where we had temperature data.
+
+\hypertarget{hierarchical-model}{%
+\subsection{Hierarchical Model}\label{hierarchical-model}}
+
+We used Bayesian hierarchical models to infer stream segment thermal sensitivity and the effects thereupon of local landscapes. We compared linear and nonlinear models fit to daily maximum and weekly maximum temperatures. By fitting a linear model, we gain first-order estimates of the relationship between air and water temperatures (Beaufort et al., 2020; \textbf{webb1997?}; \textbf{erickson2000?}; \textbf{morrill2005?}; \textbf{kelleher2012a?}). We removed observations where air temperatures were missing or \textless0\(^\circ\) C. We fit observed water temperature \(T_W\) (\(^\circ\) C) at stream segment \(i = 1,...,168\) and day/week \(t = 1,...,T\)
+
+\begin{equation}
+  \text{T}_{Wi,t} \sim \text{normal}(g(\alpha_i, \beta_i, \text{T}_{Ai,t}), \sigma^2)
+  \label{eq:Observation}
+\end{equation}
+
+where \(\sigma \sim \text{uniform}(0,10)\) and \(g(\alpha_i, \beta_i, \text{T}_{Ai,t})\) is a linear function of observed air temperature \(T_A\) (\(^\circ\)C) and the top five principle components of landscape variables:
+
+\begin{equation}
+  g(\alpha_i, \beta_i, \text{T}_{Ai,t}) = \alpha_i + \beta_i\text{T}_{Ai,t}.
+  \label{eq:Linear}
+\end{equation}
+
+\(\beta_i\), the slope of the linear air-water temperature relationship at each site, arises from \(\beta_i \sim \text{normal}(g(\theta_l, \text{PCA}_{l,i}), \sigma^2_\beta)\) where \(\sigma_\beta \sim \text{uniform}(0,10)\) and \(g(\theta_l, \text{PCA}_{l,i})\) for \(l\) in \(1,...,6\) is the linear function
+
+\begin{equation}
+  g(\theta_l, \text{PCA}_{l,i}) = \theta_1\text{PCA}_1 + \theta_2\text{PCA}_2 + \theta_3\text{PCA}_3 + \theta_4\text{PCA}_4 + \theta_5\text{PCA}_5 + \theta_6\text{PCA}_6.
+  \label{eq:PCALinear}
+\end{equation}
+
+\(\bm{\theta}\), the contribution of each principal component to thermal sensitivity, arises from \(\theta_l \sim \text{normal}(0, 100)\).
+
+We also implemented a nonlinear model to relate observed air and water temperatures. We consider the nonlinear model due to the established nonlinear behaviors of water temperature at high and low air temperatures (Mohseni et al., 1998). Following Mohseni et al. (1998), we replace Eq. \eqref{eq:Linear} with
+
+\begin{equation}
+  g(\epsilon_i, \zeta_i, \beta_i, \kappa_i, \text{T}_{Ai,t}) = \epsilon_i + \frac{\zeta_i - \epsilon_i}{1 + e^{\beta_i(\beta - \text{T}_{Ai,t})}},
+  \label{eq:MohseniModel}
+\end{equation}
+
+where \(\epsilon_i\) represents the minimum stream temperature (\(^\circ\)C) at site \(i\), \(\zeta_i\) the maximum stream temperature (\(^\circ\)C), \(\kappa_i\) the air temperature at the inflection point of the function (\(^\circ\)C), and \(\beta_i\) the slope of the function at \(\beta_i\) (\(^\circ\)C\^{}\(^{-1}\)).
+
+\emph{If using C-values, describe null model and C-value equations here}
+
+Model fit was assessed using posterior predictive checks of mean and standard deviation. Models were compared by calculating the deviance information criterion (DIC) for each. Lower DIC values indicate better model fit. We implemented our models utilizing Markov Chain Monte Carlo (MCMC) sampling using JAGS with the `jagsUI' package in R (Kellner, 2021). We provide code in Appendix \ref{model-code}. After a burn-in period of 1,000 samples, three chains were run until 5,000 iterations were reached. We report posterior means as point estimates and 95\% highest posterior density credible intervals as estimates of uncertainty.
+
+\newpage
+
+\hypertarget{results}{%
+\section{Results}\label{results}}
+
+\newpage
+
+\hypertarget{discussion}{%
+\section{Discussion}\label{discussion}}
+
+\newpage
+
+\hypertarget{conclusion}{%
+\section{Conclusion}\label{conclusion}}
+
+\newpage
+
+\hypertarget{references}{%
+\section{References}\label{references}}
+
+\hypertarget{refs}{}
+\begin{CSLReferences}{1}{0}
+\leavevmode\vadjust pre{\hypertarget{ref-beaufort2020}{}}%
+Beaufort, A., Moatar, F., Sauquet, E., Loicq, P., \& Hannah, D. M. (2020). Influence of landscape and hydrological factors on stream\textendash air temperature relationships at regional scale. \emph{Hydrological Processes}, \emph{34}(3), 583--597. \url{https://doi.org/10.1002/hyp.13608}
+
+\leavevmode\vadjust pre{\hypertarget{ref-hill2016}{}}%
+Hill, R. A., Weber, M. H., Leibowitz, S. G., Olsen, A. R., \& Thornbrugh, D. J. (2016). The {Stream-Catchment} ({StreamCat}) {Dataset}: {A Database} of {Watershed Metrics} for the {Conterminous United States}. \emph{JAWRA Journal of the American Water Resources Association}, \emph{52}(1), 120--128. \url{https://doi.org/10.1111/1752-1688.12372}
+
+\leavevmode\vadjust pre{\hypertarget{ref-kellner2021}{}}%
+Kellner, K. (2021). \emph{{jagsUI}: {A Wrapper Around} 'rjags' to {Streamline} '{JAGS}' {Analyses}}.
+
+\leavevmode\vadjust pre{\hypertarget{ref-mohseni1998a}{}}%
+Mohseni, O., Stefan, H. G., \& Erickson, T. R. (1998). A nonlinear regression model for weekly stream temperatures. \emph{Water Resources Research}, \emph{34}(10), 2685--2692. \url{https://doi.org/10.1029/98WR01877}
+
+\leavevmode\vadjust pre{\hypertarget{ref-rcoreteam2022}{}}%
+R Core Team. (2022). \emph{R: {A Language} and {Environment} for {Statistical Computing}}. R Foundation for Statistical Computing.
+
+\leavevmode\vadjust pre{\hypertarget{ref-stacklies2007}{}}%
+Stacklies, W., Redestig, H., Scholz, M., Walther, D., \& Selbig, J. (2007). {pcaMethods} \textendash{} a {Bioconductor} package providing {PCA} methods for incomplete data. \emph{Bioinformatics (Oxford, England)}, \emph{23}, 1164--1167.
+
+\leavevmode\vadjust pre{\hypertarget{ref-USGS2016}{}}%
+U.S. Geological Survey. (2016). \emph{{NHDPlus Version} 2}.
+
+\end{CSLReferences}
+
+\newpage
+
+\hypertarget{appendix}{%
+\section{Appendix}\label{appendix}}
+
+\end{document}

@@ -1,6 +1,9 @@
 ---
 title: ''
 output: bookdown::pdf_document2
-date: "`r Sys.Date()`"
 ---
 # Results
+## Principal Components Analysis
+The first five principal components explained 61% of the variance in 
+
+## Hierarchical Model
