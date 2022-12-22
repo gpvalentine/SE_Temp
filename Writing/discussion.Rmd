@@ -1,0 +1,6 @@
+---
+title: ''
+output: bookdown::pdf_document2
+date: "`r Sys.Date()`"
+---
+# Discussion

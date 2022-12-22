@@ -1,0 +1,91 @@
+---
+title: "Landscape variables characterize thermal stability in Southeastern US Brook Trout streams"
+author: 
+  - George Valentine, Dept. Fish, Wildlife, & Conservation Biology, Colorado State University, george.valentine@colostate.edu
+  - Xinyi Lu, Dept. Fish, Wildlife, & Conservation Biology, Colorado State University
+  - C. Andrew Dolloff, U.S. Forest Service Southern Research Station
+  - Mevin Hooten, Dept. Statistics & Data Sciences, University of Texas at Austin
+  - Yoichiro Kanno, Dept. Fish, Wildlife, & Conservation Biology, Colorado State University
+date: "`r Sys.Date()`"
+output:
+  bookdown::pdf_document2:
+    toc: TRUE
+    number_sections: TRUE
+    keep_tex: true
+geometry: "left = 2.5cm, right = 2cm, top = 2cm, bottom = 2cm"
+fontsize: 11pt
+header-includes:
+  - \usepackage[left]{lineno}
+  - \linenumbers
+  - \pagenumbering{gobble}
+  - \usepackage{sectsty}
+  - \usepackage{setspace}\spacing{1.5}
+  - \usepackage{bm}
+  - \DeclareUnicodeCharacter{0008}{ }
+linkcolor: blue
+bibliography: bibliography.bib
+csl: apa.csl
+params:
+  run_name: ["v1.0"]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+
+# load required R packages
+library(here)         # For auto-locating files within the working directory
+library(bookdown)     # For numbering figures, tables, and equations
+library(stringr)      # For manipulating strings in figure captions
+library(cowplot)      # For creating gridded plots
+library(gridGraphics) # For including base R plots in gridded plots
+library(formatR)      # For displaying tidy code in output
+library(knitr)        # For making tidy tables
+
+# Save the directory from which to pull results files
+run_dir <- here::here("results", params$run_name)
+
+# Load figures and tables to include
+load(file = file.path(run_dir, "plots.rdata"))
+load(file = file.path(run_dir, "tables.rdata"))
+```
+
+\newpage
+
+```{r abstract, child = 'abstract.Rmd'}
+```
+
+\newpage
+\pagenumbering{arabic}
+
+```{r intro, child = 'introduction.Rmd'}
+```
+
+\newpage
+
+```{r methods, child = 'methods.Rmd'}
+```
+
+\newpage
+
+```{r results, child = 'results.Rmd'}
+```
+
+\newpage
+
+```{r discussion, child = 'discussion.Rmd'}
+```
+
+\newpage
+
+```{r conclusion, child = 'conclusion.Rmd'}
+```
+
+\newpage
+
+```{r biblio, child = 'bibliography.Rmd'}
+```
+
+\newpage
+
+```{r appendix, child = 'appendix.Rmd'}
+```

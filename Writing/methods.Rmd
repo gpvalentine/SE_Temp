@@ -1,0 +1,49 @@
+---
+title: ''
+output: bookdown::pdf_document2
+---
+# Methods
+## Dataset and Study Area
+We considered paired air and water temperature data from 168 sites throughout the southern Appalachian region of the USA (Fig. X). Sites were subsetted from 204 randomly selected subwatersheds identified as capable of supporting populations of brook trout [*Salvelinus fontinalis*; @ebtjv2006]. Located at the downstream outlet of the subwatersheds, at each site a logger underwater was paired with a logger affixed to the bank or a tree. Stream and air temperatures were measured every 30 minutes using remote loggers (Onset Computer Corporation, 470 MacArthur Blvd. Bourne, MA 02532). Loggers were deployed from 2011 to 2015. For model fitting, we summarized temperatures to daily and weekly maximums, a reflection of the thermal sensitivity of coldwater organisms. 
+
+Each site was linked using a GIS to the National Hydrography Dataset [NHDplus v2.1; @USGS2016] stream segment on which it is located. Using the NHDplus COMID code for each segment, we then accessed associated landscape metrics from the NHDplus and the Environmental Protection Agency StreamCat database [@hill2016]. Together, these sources contributed 174 variables for each segment (Appendix X).
+
+## Principal Components Analysis
+We performed a Bayesian principal components analysis (PCA) of the segment-level NHDplus and StreamCat predictors at >9,000 sites of known BKT habitat obtained through EcoSHEDS (www.usgs.gov/apps/ecosheds) and the Eastern Brook Trout Joint Venture [@ebtjv2006]. We used Bayesian PCA due to its ability to take N/A values in inputs. Analysis was completed using the “pcaMethods” package in R [@stacklies2007; @rcoreteam2022]. We then extracted the top ten loadings by absolute value for the first five principle components (cumulative r$^2$: 0.61). Lastly, we extracted PCA scores for the stream segments where we had temperature data.
+
+## Hierarchical Model
+We used Bayesian hierarchical models to infer stream segment thermal sensitivity and the effects thereupon of local landscapes. We compared linear and nonlinear models fit to daily maximum and weekly maximum temperatures. By fitting a linear model, we gain first-order estimates of the relationship between air and water temperatures [@webb1997; @erickson2000; @morrill2005; @kelleher2012a; @beaufort2020]. We removed observations where air temperatures were missing or <0$^\circ$ C. We fit observed water temperature $T_W$ ($^\circ$ C) at stream segment $i = 1,...,168$ and day/week $t = 1,...,T$
+
+\begin{equation}
+  \text{T}_{Wi,t} \sim \text{normal}(g(\alpha_i, \beta_i, \text{T}_{Ai,t}), \sigma^2)
+  (\#eq:Observation)
+\end{equation}
+
+where $\sigma \sim \text{uniform}(0,10)$ and $g(\alpha_i, \beta_i, \text{T}_{Ai,t})$ is a linear function of observed air temperature $T_A$ ($^\circ$C) and the top five principle components of landscape variables:
+
+\begin{equation}
+  g(\alpha_i, \beta_i, \text{T}_{Ai,t}) = \alpha_i + \beta_i\text{T}_{Ai,t}.
+  (\#eq:Linear)
+\end{equation}
+
+$\beta_i$, the slope of the linear air-water temperature relationship at each site, arises from $\beta_i \sim \text{normal}(g(\theta_l, \text{PCA}_{l,i}), \sigma^2_\beta)$ where $\sigma_\beta \sim \text{uniform}(0,10)$ and $g(\theta_l, \text{PCA}_{l,i})$ for $l$ in $1,...,6$ is the linear function
+
+\begin{equation}
+  g(\theta_l, \text{PCA}_{l,i}) = \theta_1\text{PCA}_1 + \theta_2\text{PCA}_2 + \theta_3\text{PCA}_3 + \theta_4\text{PCA}_4 + \theta_5\text{PCA}_5 + \theta_6\text{PCA}_6.
+  (\#eq:PCALinear)
+\end{equation}
+
+$\bm{\theta}$, the contribution of each principal component to thermal sensitivity, arises from $\theta_l \sim \text{normal}(0, 100)$.
+
+We also implemented a nonlinear model to relate observed air and water temperatures. We consider the nonlinear model due to the established nonlinear behaviors of water temperature at high and low air temperatures [@mohseni1998a]. Following @mohseni1998a, we replace Eq. \@ref(eq:Linear) with
+
+\begin{equation}
+  g(\epsilon_i, \zeta_i, \beta_i, \kappa_i, \text{T}_{Ai,t}) = \epsilon_i + \frac{\zeta_i - \epsilon_i}{1 + e^{\beta_i(\beta - \text{T}_{Ai,t})}},
+  (\#eq:MohseniModel)
+\end{equation}
+
+where $\epsilon_i$ represents the minimum stream temperature ($^\circ$C) at site $i$, $\zeta_i$ the maximum stream temperature ($^\circ$C), $\kappa_i$ the air temperature at the inflection point of the function ($^\circ$C), and $\beta_i$ the slope of the function at $\beta_i$ ($^\circ$C^$^{-1}$).
+
+*If using C-values, describe null model and C-value equations here*
+
+Model fit was assessed using posterior predictive checks of mean and standard deviation. Models were compared by calculating the deviance information criterion (DIC) for each. Lower DIC values indicate better model fit. We implemented our models utilizing Markov Chain Monte Carlo (MCMC) sampling using JAGS with the 'jagsUI' package in R [@kellner2021]. We provide code in Appendix \@ref(model-code). After a burn-in period of 1,000 samples, three chains were run until 5,000 iterations were reached. We report posterior means as point estimates and 95% highest posterior density credible intervals as estimates of uncertainty.

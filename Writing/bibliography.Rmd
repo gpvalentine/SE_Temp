@@ -1,0 +1,8 @@
+---
+title: ''
+output: bookdown::pdf_document2
+---
+
+# References
+
+<div id="refs"></div>
