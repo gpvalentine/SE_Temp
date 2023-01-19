@@ -86,12 +86,12 @@ BKT_Habitat_StreamSegment_covars3 <- as.matrix(scale(BKT_Habitat_StreamSegment_c
 pca <- pcaMethods::bpca(BKT_Habitat_StreamSegment_covars3[,-1],
             nPcs = 40)
 
-summary(pca)
+pca_summary.table <- as.data.frame(summary(pca))[,1:5]
 
 # plot PCA
-biplot(pca,
-         ellipse = T) +
-  theme_classic()
+# biplot(pca,
+#          ellipse = T) +
+#   theme_classic()
 
 # Save PCA loadings
 pca.loadings <- as.data.frame(loadings(pca))
@@ -109,8 +109,16 @@ for (i in 1:5) {
   top.loadings <- cbind(top.loadings, top.loadings.i)
 }
 
-# Save loadings
-fwrite(top.loadings, here("Results/v1.0","PCA_top5_loadings.csv"))
+# make a table of the top loadings to include in the manuscript
+top.loadings.table <- data.frame(rbind(round(pca_summary.table["R2",], 3)*100,
+                                       data.frame(PC1 = paste(as.list.data.frame(top.loadings[,1]), collapse = ", "),
+                                             PC2 = paste(as.list.data.frame(top.loadings[,3]), collapse = ", "),
+                                             PC3 = paste(as.list.data.frame(top.loadings[,5]), collapse = ", "),
+                                             PC4 = paste(as.list.data.frame(top.loadings[,7]), collapse = ", "),
+                                             PC5 = paste(as.list.data.frame(top.loadings[,9]), collapse = ", "))))
+
+rownames(top.loadings.table) <- c("R^2", "Variables")
+  
 
 # extract PCA coords for individuals
 #pca_coords <- get_pca_ind(pca)$coord
@@ -157,13 +165,13 @@ NS204_temps_daily_filtered <- NS204_temps_daily %>%
   filter(COMID %in% pca_scores$COMID, # Filter temp data to the COMIDs for which we have principle components
          !is.na(AirTemp_c_MAX)) %>% 
   arrange(COMID) %>% 
-  mutate(SiteNo = match(COMID, unique(COMID)))  # Add a SiteNo column to the filtered data
+  mutate(SegmentNo = match(COMID, unique(COMID)))  # Add a SegmentNo column to the filtered data
 
 NS204_temps_weekly_filtered <- NS204_temps_weekly %>% 
   filter(COMID %in% pca_scores$COMID, # Filter temp data to the COMIDs for which we have principle components
          !is.na(AirTemp_c_MAX)) %>% 
   arrange(COMID) %>% 
-  mutate(SiteNo = match(COMID, unique(COMID)))  # Add a SiteNo column to the filtered data
+  mutate(SegmentNo = match(COMID, unique(COMID)))  # Add a SegmentNo column to the filtered data
 
 # Plot the data from a random segment
 NS204_temps_daily_filtered %>% 
@@ -236,7 +244,7 @@ model{
   
   ## Process
   for (n in 1:nObs.daily){
-    WaterTemp_Max_Pred[n] <- alpha[SiteNo[n]] + beta[SiteNo[n]] * AirTemp_Max_Obs[n]
+    WaterTemp_Max_Pred[n] <- alpha[SegmentNo[n]] + beta[SegmentNo[n]] * AirTemp_Max_Obs[n]
     WaterTemp_Max_Obs[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
     
     WaterTemp_Max_New[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
@@ -262,7 +270,7 @@ jags_data <- list(nCOMIDs = nCOMIDs,
                   NS204_PCA_scores = NS204_PCA_scores,
                   AirTemp_Max_Obs = NS204_temps_daily_filtered_LM$AirTemp_c_MAX,
                   WaterTemp_Max_Obs = NS204_temps_daily_filtered_LM$WaterTemp_c_MAX,
-                  SiteNo = NS204_temps_daily_filtered$SiteNo)
+                  SegmentNo = NS204_temps_daily_filtered_LM$SegmentNo)
 
 # Set parameters to save
 jags_params <- c("alpha", "beta", "mu.beta", "sd.beta", "tau.beta", "theta", "tau", "sd", "pvalue.mean", "pvalue.sd")
@@ -287,6 +295,24 @@ Daily_Max_StreamTemp_LM_Full <- jagsUI::jags(data = jags_data,
 Daily_Max_StreamTemp_LM_Full_params <- MCMCsummary(Daily_Max_StreamTemp_LM_Full, HPD = T)
 # Get DIC
 DIC(Daily_Max_StreamTemp_LM_Full)
+
+# plot to visualize
+plot_data <- Daily_Max_StreamTemp_LM_Full_params %>% 
+  rownames_to_column("param") %>% 
+  filter(str_detect(param, "WaterTemp_Max_New")) %>% 
+  select(mean) %>% 
+  cbind(AirTemp_c_MAX = NS204_temps_daily_filtered$AirTemp_c_MAX,
+        WaterTemp_c_MAX = NS204_temps_daily_filtered$WaterTemp_c_MAX,
+        COMID = NS204_temps_daily_filtered$COMID)
+
+plot_data %>% 
+  filter(COMID %in% sample(unique(COMID), 1)) %>% 
+  ggplot() +
+  geom_point(aes(x = AirTemp_c_MAX,
+                 y = WaterTemp_c_MAX)) +
+  geom_line(aes(x = AirTemp_c_MAX,
+                y = mean),
+            color = "red")
 
 ## Weekly Max Temperatures ##
 # Write model
@@ -326,12 +352,10 @@ model{
   
   ## Process
   for (n in 1:nObs.weekly){
-    WaterTemp_Max_Pred[n] <- alpha[SiteNo[n]] + beta[SiteNo[n]] * AirTemp_Max_Obs[n]
+    WaterTemp_Max_Pred[n] <- alpha[SegmentNo[n]] + beta[SegmentNo[n]] * AirTemp_Max_Obs[n]
     WaterTemp_Max_Obs[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
     
-    WaterTemp_Max.new[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
-    # res[n] <- WaterTemp_Max_Obs[n] - WaterTemp_Max_Pred[n]
-    # res.new[n] <- WaterTemp_Max.new[n] - WaterTemp_Max_Pred[n]
+    WaterTemp_Max_New[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
   }
   
   ## Posterior Predictive Checks
@@ -357,7 +381,7 @@ jags_data <- list(nCOMIDs = nCOMIDs,
                   NS204_PCA_scores = NS204_PCA_scores,
                   AirTemp_Max_Obs = NS204_temps_weekly_filtered_LM$AirTemp_c_MAX,
                   WaterTemp_Max_Obs = NS204_temps_weekly_filtered_LM$WaterTemp_c_MAX,
-                  SiteNo = NS204_temps_weekly_filtered$SiteNo)
+                  SegmentNo = NS204_temps_weekly_filtered$SegmentNo)
 
 # Set parameters to save
 jags_params <- c("alpha", "beta", "mu.beta", "sd.beta", "tau.beta", "theta", "tau", "sd", "pvalue.mean", "pvalue.sd")
@@ -371,7 +395,7 @@ nt <- 1
 # Fit model
 Weekly_Max_StreamTemp_LM_Full <- jagsUI::jags(data = jags_data,
                                              parameters.to.save = jags_params,
-                                             model.file = "Analysis/SE_Temp_Weekly_Max_StreamTemp_LM_Full.jags",
+                                             model.file = "Analysis/JAGS_Files/SE_Temp_Weekly_Max_StreamTemp_LM_Full.jags",
                                              n.chains = nc,
                                              n.iter = ni,
                                              n.burnin = nb,
@@ -383,20 +407,63 @@ Weekly_Max_StreamTemp_LM_Full_params <- MCMCsummary(Weekly_Max_StreamTemp_LM_Ful
 # Get DIC
 DIC(Weekly_Max_StreamTemp_LM_Full)
 
+## Plot fit over data to visualize
+# Extract intercepts and slopes
+Weekly_LM_intercepts <- MCMCsummary(Weekly_Max_StreamTemp_LM_Full, params = "alpha") %>% 
+  dplyr::select(mean) %>% 
+  cbind(COMID = NS204_PCA_scores$COMID)
+  
+# Extract slopes
+Weekly_LM_slopes <- MCMCsummary(Weekly_Max_StreamTemp_LM_Full, params = "beta") %>% 
+  dplyr::select(mean) %>% 
+  cbind(COMID = NS204_PCA_scores$COMID)
+
+## fit
+# select a random segment
+sample_COMID <- NS204_PCA_scores %>% filter(COMID %in% sample(unique(COMID), 1)) %>% .[,"COMID"]
+
+# Create an empty dataframe to store predicted watertemp data
+watertemp_pred_weekly_LM <- data.frame(WaterTemp_MAX_pred = numeric())
+
+# predict water temp at the random segment using the parameters from the model for that segment
+for (i in 1:nrow(NS204_temps_weekly_filtered_LM[NS204_temps_weekly_filtered_LM$COMID == sample_COMID,])) {
+  airtemp_obs <- NS204_temps_weekly_filtered_LM[NS204_temps_weekly_filtered_LM$COMID == sample_COMID, "AirTemp_c_MAX"]
+  watertemp_pred_weekly_LM[i,1] <- Weekly_LM_intercepts[Weekly_LM_intercepts$COMID == sample_COMID, "mean"] + Weekly_LM_slopes[Weekly_LM_slopes$COMID == sample_COMID, "mean"] * airtemp_obs[i]
+}
+
+# plot
+ggplot() +
+  geom_point(aes(x = NS204_temps_weekly_filtered_LM[NS204_temps_weekly_filtered_LM$COMID == sample_COMID]$AirTemp_c_MAX,
+                 y = NS204_temps_weekly_filtered_LM[NS204_temps_weekly_filtered_LM$COMID == sample_COMID]$WaterTemp_c_MAX)) +
+  geom_line(aes(x = NS204_temps_weekly_filtered_LM[NS204_temps_weekly_filtered_LM$COMID == sample_COMID]$AirTemp_c_MAX,
+                y = watertemp_pred_weekly_LM$WaterTemp_MAX_pred),
+            color = "red") + 
+  labs(x = "Air Temp (c)",
+       y = "Air Temp(c)") +
+  theme_classic()
+
+
 #########################
 ### Logistic Model ###
 #########################
 
 ## following Mohseni et al. (1998), the following nonlinear logistic regression model is used:
-# T(s) = epsilon + ((zeta - epsilon)/1 + e^beta(kappa-T(a)))
+# T(s) = epsilon + ((zeta - epsilon)/(1 + e^phi(kappa-T(a))))
 
 # Where: 
 #   T(s) = estimated stream temp (C)
 #   T(a) = measured air temp (C)
 #   epsilon = estimated minimum stream temp (C)
 #   zeta = estimated maximum stream temp (C)
-#   beta = steepest slope of the function (C^-1)
+#   phi = measure of steepest slope of the function (C^-1)
+#   beta = steepest slope of the function (C)
 #   kappa = Air temp (C) at the function's inflection point
+
+# Create a dataframe of the min and max water temps at each site
+min_max_waterTemps <- NS204_temps_weekly_filtered %>% 
+  group_by(SegmentNo) %>% 
+  summarize(min_waterTemp = min(WaterTemp_c_MAX, na.rm = T),
+            max_waterTemp = max(WaterTemp_c_MAX, na.rm = T))
 
 ## Weekly Max Temperatures ##
 # Write model
@@ -411,23 +478,30 @@ model{
    theta[m] ~ dnorm(0, 0.01)
   }
   
-  # tau.beta - precision for all betas
-  sd.beta ~ dunif(0, 10)
-  tau.beta <- 1/sd.beta^2
+  # tau.phi - precision for all phis
+  sd.phi ~ dunif(0, 10)
+  tau.phi <- 1/(sd.phi^2)
 
   for (i in 1:nCOMIDs){
 
-    # epsilon_i - estimated minimum stream temp at segment i
-    epsilon[i] ~ dgamma((5^2/5^2), (5/5^2))
+    # epsilon_i - estimated minimum stream temp at segment i 
+    #epsilon[i] ~ dgamma((5^2)/(5^2), 5/(5^2)) # the original method - moment matching for mean 5 and variance 2
+    #epsilon[i] ~ dgamma(5, 2) # testing to see if JAGS wasn't liking the moment matching. Uses raw mean and variance
+    #epsilon[i] <- min_waterTemps[i] # Uses the measured minimum temperature
+    epsilon[i] ~ dnorm(min_waterTemps[i], 1/0.001) # uses a normal distribution informed by the measured minimum temperature
     
     # zeta_i - estimated maximum stream temp at segment i
-    zeta[i] ~ dgamma((25^2/10^2), (25/10^2))
+    #zeta[i] ~ dgamma((25^2)/(10^2), 25/(10^2))
+    #zeta[i] ~ dgamma(25, 10)
+    #zeta[i] <- max_waterTemps[i]
+    zeta[i] ~ dnorm(max_waterTemps[i], 1/0.001)
     
-    # mu.beta_i - mean parameter for dnorm
-    mu.beta[i] <- theta[1] + theta[2] * NS204_PCA_scores[i,2] + theta[3] * NS204_PCA_scores[i,3] + theta[4] * NS204_PCA_scores[i,4] + theta[5] * NS204_PCA_scores[i,5] + theta[6] * NS204_PCA_scores[i,6]
+    # mu.phi_i - mean parameter for phi_i
+    mu.phi[i] <- theta[1] + theta[2] * NS204_PCA_scores[i,2] + theta[3] * NS204_PCA_scores[i,3] + theta[4] * NS204_PCA_scores[i,4] + theta[5] * NS204_PCA_scores[i,5] + theta[6] * NS204_PCA_scores[i,6]
 
-    # beta_i - steepest slope of the function at segment i
-    beta[i] ~ dnorm(mu.beta[i], tau.beta)
+    # phi_i - measure of the steepest slope of the function at segment i
+    phi[i] ~ dnorm(mu.phi[i], tau.phi)
+    #phi[i] ~ dnorm(0, 0.01) # testing to see if phi would change if I removed the model on the mean
     
     # kappa_i - Air temp at the function's inflection point for segment i
     kappa[i] ~ dnorm(20, 0.01)
@@ -440,22 +514,28 @@ model{
   
   ## Process
   for (n in 1:nObs.weekly){
-    WaterTemp_Max_Pred[n] <- epsilon[[SiteNo]] + ((zeta[SiteNo[n]] - epsilon[[SiteNo]])/1 + exp(beta[SiteNo[n]] * (kappa[SiteNo[n]] - AirTemp_Max_Obs[n])))
+    WaterTemp_Max_Pred[n] <- epsilon[SegmentNo[n]] + ((zeta[SegmentNo[n]] - epsilon[SegmentNo[n]])/(1 + exp(phi[SegmentNo[n]] * (kappa[SegmentNo[n]] - AirTemp_Max_Obs[n]))))
     WaterTemp_Max_Obs[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
     
-    WaterTemp_Max_New[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
+    # New data for PPCs
+    # WaterTemp_Max_New[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
+  }
+  
+  # Relation to calculate phi from beta (slope), zeta, and epsilon
+  for (i in 1:nCOMIDs){
+    beta[i] <- (phi[i]*(zeta[i] - epsilon[i]))/4
   }
   
   ## Posterior Predictive Checks
   # Mean
-  mean.WaterTemp_Max_Obs <- mean(WaterTemp_Max_Obs)
-  mean.WaterTemp_Max_New <- mean(WaterTemp_Max_New)
-  pvalue.mean <- step(mean.WaterTemp_Max_New - mean.WaterTemp_Max_Obs)
+  # mean.WaterTemp_Max_Obs <- mean(WaterTemp_Max_Obs)
+  # mean.WaterTemp_Max_New <- mean(WaterTemp_Max_New)
+  # pvalue.mean <- step(mean.WaterTemp_Max_New - mean.WaterTemp_Max_Obs)
   
   # sd
-  sd.WaterTemp_Max_Obs <- sd(WaterTemp_Max_Obs)
-  sd.WaterTemp_Max_New <- sd(WaterTemp_Max_New)
-  pvalue.sd <- step(sd.WaterTemp_Max_New - sd.WaterTemp_Max_Obs)
+  # sd.WaterTemp_Max_Obs <- sd(WaterTemp_Max_Obs)
+  # sd.WaterTemp_Max_New <- sd(WaterTemp_Max_New)
+  # pvalue.sd <- step(sd.WaterTemp_Max_New - sd.WaterTemp_Max_Obs)
 }
 ", fill = TRUE)
 sink()
@@ -464,12 +544,14 @@ sink()
 jags_data <- list(nCOMIDs = nCOMIDs,
                   nObs.weekly = nObs.weekly,
                   NS204_PCA_scores = NS204_PCA_scores,
+                  min_waterTemps = min_max_waterTemps$min_waterTemp,
+                  max_waterTemps = min_max_waterTemps$max_waterTemp,
                   AirTemp_Max_Obs = NS204_temps_weekly_filtered$AirTemp_c_MAX,
                   WaterTemp_Max_Obs = NS204_temps_weekly_filtered$WaterTemp_c_MAX,
-                  SiteNo = NS204_temps_weekly_filtered$SiteNo)
+                  SegmentNo = NS204_temps_weekly_filtered$SegmentNo)
 
 # Set parameters to save
-jags_params <- c("theta", "epsilon", "zeta", "mu.beta", "sd.beta", "beta", "kappa", "sd", "pvalue.mean", "pvalue.sd", "WaterTemp_Max_New")
+jags_params <- c("theta", "epsilon", "zeta", "mu.phi", "sd.phi", "tau.phi", "phi", "beta", "kappa", "sd")
 
 # MCMC settings
 ni <- 5000
@@ -492,6 +574,54 @@ Weekly_Max_StreamTemp_Logistic_Full_Params <- MCMCsummary(Weekly_Max_StreamTemp_
 # Get DIC
 DIC(Weekly_Max_StreamTemp_Logistic_Full)
 
+MCMCtrace(Weekly_Max_StreamTemp_Logistic_Full, params = "zeta", pdf = F)
+
+## Plot fit over data to visualize
+# Extract parameters
+Weekly_Logistic_epsilons <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, params = "epsilon") %>% 
+  dplyr::select(mean) %>% 
+  cbind(COMID = NS204_PCA_scores$COMID)
+
+Weekly_Logistic_zetas <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, params = "zeta") %>% 
+  dplyr::select(mean) %>% 
+  cbind(COMID = NS204_PCA_scores$COMID)
+
+Weekly_Logistic_phis <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, params = "phi") %>% 
+  dplyr::select(mean) %>% 
+  cbind(COMID = NS204_PCA_scores$COMID)
+
+Weekly_Logistic_kappas <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, params = "kappa") %>% 
+  dplyr::select(mean) %>% 
+  cbind(COMID = NS204_PCA_scores$COMID)
+
+Weekly_Logistic_betas <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, params = "beta") %>% 
+  dplyr::select(mean) %>% 
+  cbind(COMID = NS204_PCA_scores$COMID)
+
+## fit
+# select a random segment
+sample_COMID <- NS204_PCA_scores %>% filter(COMID %in% sample(unique(COMID), 1)) %>% .[,"COMID"]
+
+# Create an empty dataframe to store predicted watertemp data
+watertemp_pred_weekly <- data.frame(WaterTemp_MAX_pred = numeric())
+
+# predict water temp at the random segment using the parameters from the model for that segment
+for (i in 1:nrow(NS204_temps_weekly_filtered[NS204_temps_weekly_filtered$COMID == sample_COMID,])) {
+  airtemp_obs <- NS204_temps_weekly_filtered[NS204_temps_weekly_filtered$COMID == sample_COMID, "AirTemp_c_MAX"]
+  watertemp_pred_weekly[i,1] <- Weekly_Logistic_epsilons[Weekly_Logistic_epsilons$COMID == sample_COMID, "mean"] + ((Weekly_Logistic_zetas[Weekly_Logistic_zetas$COMID == sample_COMID, "mean"] - Weekly_Logistic_epsilons[Weekly_Logistic_epsilons$COMID == sample_COMID, "mean"])/(1 + exp(Weekly_Logistic_phis[Weekly_Logistic_phis$COMID == sample_COMID, "mean"] * (Weekly_Logistic_kappas[Weekly_Logistic_kappas$COMID == sample_COMID, "mean"] - airtemp_obs[i]))))
+}
+
+# plot
+ggplot() +
+  geom_point(aes(x = NS204_temps_weekly_filtered[NS204_temps_weekly_filtered$COMID == sample_COMID]$AirTemp_c_MAX,
+                 y = NS204_temps_weekly_filtered[NS204_temps_weekly_filtered$COMID == sample_COMID]$WaterTemp_c_MAX)) +
+  geom_line(aes(x = NS204_temps_weekly_filtered[NS204_temps_weekly_filtered$COMID == sample_COMID]$AirTemp_c_MAX,
+                y = watertemp_pred_weekly$WaterTemp_MAX_pred),
+            color = "red") +
+  labs(x = "Air Temp (c)",
+       y = "Water Temp (c)",
+       title = sample_COMID) +
+  theme_classic()
 
 ##### 
 # Null Model (no PCA)
@@ -563,28 +693,69 @@ StreamTemp_PCA_LM_null_v4 <- jagsUI::jags(data = jags_data,
                                      n.thin = nt,
                                      parallel = T)
 
-StreamTemp_PCA_LM_v4_null_params <- as.data.frame(StreamTemp_PCA_LM_null_v4$summary)
-view(StreamTemp_PCA_LM_v4_null_params) 
+StreamTemp_PCA_LM_v4_null_params <- MCMCsummary(StreamTemp_PCA_LM_null_v4, HPD = T)
+
+################################
+# Map sites
+NS204_Sites <- fread("C:/Users/georgepv/OneDrive - Colostate/SE Eco-Hydrology Project/Temperature Modeling Paper/SE_Temp/Data/NS204_sites.csv")
+
+# filter to the sites at which we did our analysis
+NS204_Sites <- NS204_Sites %>% 
+  filter(COMID %in% NS204_temps_daily_filtered$COMID) %>% 
+  arrange(COMID)
+
+US_states <- map_data("state")
+
+NS204_Sites_map.plot <- ggplot() +
+  geom_polygon(data = US_states, 
+               aes(x = long, y = lat, group = group),
+               color = "black", fill = NA) +
+  geom_point(data = NS204_Sites, 
+             aes(x = Long, y = Lat),
+             color = "black") +
+  coord_map("bonne",
+            lat0 = 40,
+            xlim = c(-84.2, -75.5),
+            ylim = c(34.5, 40.5)) +
+  labs(x = "Long",
+       y = "Lat") +
+  theme_classic()
+
+################################
+# is there spatial structure in thermal sensitivity?
+library(geoR)
+
+logistic_weekly_betas <- Weekly_Max_StreamTemp_Logistic_Full_Params %>% 
+  rownames_to_column("param") %>% 
+  filter(str_detect(param, "^beta")) %>% 
+  cbind(NS204_Sites) # join in site data
+
+logistic_weekly_betas.geo <- as.geodata(logistic_weekly_betas[,c("mean", "Lat", "Long")], coords.col = c(2,3))
+logistic_weekly_betas_semivariogram <- geoR::variog(logistic_weekly_betas.geo)
+logistic_weekly_betas_semivariogram.plot <- ggplot(data = as.data.frame(logistic_weekly_betas_semivariogram[1:2])) +
+  geom_point(aes(x = u,
+                 y = v)) +
+  labs(x = "Distance Class (DD)",
+       y = "Semivariance") +
+  theme_classic()
 
 ################################
 # Visualize thetas
 # use 95% highest posterior density credible intervals
-thetas <- StreamTemp_PCA_LM_full_v4_params %>% 
+thetas <- Weekly_Max_StreamTemp_Logistic_Full_Params %>% 
   rownames_to_column(., "param") %>% 
-  .[508:512,2] %>% 
+  filter(str_detect(param, "theta")) %>% 
   as.data.frame() %>% 
-  mutate(PC = c("PC1", "PC2", "PC3", "PC4", "PC5"),
-         Pstr_0.025 = as.data.frame(MCMCpstr(StreamTemp_PCA_LM_full_v4, params = "theta", func = function(x)hdi(x, 0.95)))[2:6,1],
-         Pstr_0.975 = as.data.frame(MCMCpstr(StreamTemp_PCA_LM_full_v4, params = "theta", func = function(x)hdi(x, 0.95)))[2:6,2]) %>% 
-  rename(., Pstr_Mean = 1) %>% 
-  relocate(PC, .before = everything())
+  .[2:6,] %>%  # Remove first theta, which corresponds to intercept
+  mutate(PC = c("PC1", "PC2", "PC3", "PC4", "PC5"))
+
 
 ggplot(thetas) +
   geom_point(aes(x = PC,
-                 y = Pstr_Mean)) +
+                 y = mean)) +
   geom_linerange(aes(x = PC,
-                     ymin = Pstr_0.025,
-                     ymax = Pstr_0.975)) +
+                     ymin = `95%_HPDL`,
+                     ymax = `95%_HPDU`)) +
   geom_hline(yintercept = 0,
              linetype = "dashed",
              alpha = 0.5) +
@@ -595,38 +766,34 @@ ggplot(thetas) +
 ################################
 # Derived quantities
 
-# C.beta - variation in slopes explained by landscape characteristics
-C.beta.mean <- (1 - ((1/StreamTemp_PCA_LM_full_v4_params['tau.beta',1])/(1/StreamTemp_PCA_LM_v4_null_params['tau.beta',1])))
-C.beta.025 <- (1 - ((1/StreamTemp_PCA_LM_full_v4_params['tau.beta',3])/(1/StreamTemp_PCA_LM_v4_null_params['tau.beta',3])))
-C.beta.975 <- (1 - ((1/StreamTemp_PCA_LM_full_v4_params['tau.beta',7])/(1/StreamTemp_PCA_LM_v4_null_params['tau.beta',7])))
+# C.phi - variation in slopes explained by landscape characteristics
+C.phi <- (1 - ((1/Weekly_Max_StreamTemp_Logistic_Full_Params['tau.phi',1])/(1/Weekly_Max_StreamTemp_Logistic_Full_Params['tau.phi',1])))
 
 # C - variation in water temp explained by slopes and air temp
 C <- (1 - ((1/StreamTemp_PCA_LM_full_v4_params['tau',1])/(1/StreamTemp_PCA_LM_v4_null_params['tau',1])))
 
 #################################
 # visualize betas (slopes) from full model on a map
-slopes <- StreamTemp_PCA_LM_full_v4_params %>% 
+slopes <- Weekly_Max_StreamTemp_Logistic_Full_Params %>% 
   rownames_to_column(., "param") %>% 
-  .[169:336,2] %>% # separate out mu.betas
-  cbind(NS204_PCA_scores[,1]) %>% # bind in COMIDs
-  as.data.frame()
+  filter(str_detect(param, "mu.beta")) %>% # separate out mu.betas
+  cbind(NS204_Sites) %>% # bind in COMIDs
+  select(mean, COMID, Lat, Long)
 
-names(slopes) <- c("beta", "COMID")
-
+# Join in (uncentered) landscape covariates
 slopes <- slopes %>% 
-  left_join(TempModel_Data)
+  left_join(BKT_Habitat_StreamSegment_covars2)
   
 # what variables are slopes correlated with?
 cor(slopes[,c(1,5:7,14:129)], method = "spearman", use = "pairwise.complete.obs")[1,]
-  
-US_states <- map_data("state")
+
 
 ggplot() +
   geom_polygon(data = US_states, 
                aes(x = long, y = lat, group = group),
                color = "black", fill = NA) +
   geom_point(data = slopes, 
-             aes(x = Long, y = Lat, color = beta)) +
+             aes(x = Long, y = Lat, color = mean)) +
   coord_map("bonne",
             lat0 = 40,
             xlim = c(-84.2, -75.5),
@@ -636,7 +803,7 @@ ggplot() +
        #title = "Posterior Mean Air-Water Temperature Slopes \nat NS204 Sites",
        color = expression(beta)) +
   #scale_color_viridis_c(limits=c(0,1)) +
-  scale_color_viridis_c(limits=c(min(slopes$beta),max(slopes$beta))) +
+  scale_color_viridis_c(limits=c(min(slopes$mean),max(slopes$mean))) +
   theme_classic()
 
 ###############################
@@ -770,3 +937,14 @@ ggplot() +
   theme_classic()
 
 fwrite(trout_site_betas, "C:/Users/georgepv/OneDrive - Colostate/Lab PC Backup/Desktop/trout_site_betas.csv")
+
+########################################################
+# Export plots to the results folder
+
+# Save the directory to which to save results files
+run_dir <- here("results", "v1.0")
+
+plots <- ls()[str_detect(ls(), ".plot")]
+tables <- ls()[str_detect(ls(), ".table")]
+save(file = file.path(run_dir, "plots.RData"), list = plots)
+save(file = file.path(run_dir, "tables.RData"), list = tables)
