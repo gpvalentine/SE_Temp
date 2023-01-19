@@ -4,12 +4,16 @@ output: bookdown::pdf_document2
 ---
 # Methods
 ## Dataset and Study Area
-We considered paired air and water temperature data from 168 sites throughout the southern Appalachian region of the USA (Fig. X). Sites were subsetted from 204 randomly selected subwatersheds identified as capable of supporting populations of brook trout [*Salvelinus fontinalis*; @ebtjv2006]. Located at the downstream outlet of the subwatersheds, at each site a logger underwater was paired with a logger affixed to the bank or a tree. Stream and air temperatures were measured every 30 minutes using remote loggers (Onset Computer Corporation, 470 MacArthur Blvd. Bourne, MA 02532). Loggers were deployed from 2011 to 2015. For model fitting, we summarized temperatures to daily and weekly maximums, a reflection of the thermal sensitivity of coldwater organisms. 
+We considered paired air and water temperature data from 168 sites throughout the southern Appalachian region of the USA (Fig. \@ref(fig:sites-map)). Sites were subsetted from 204 randomly selected subwatersheds identified as capable of supporting populations of brook trout [*Salvelinus fontinalis*; @ebtjv2006]. Located at the downstream outlet of the subwatersheds, at each site a logger underwater was paired with a logger affixed to the bank or a tree. Stream and air temperatures were measured every 30 minutes using remote loggers (Onset Computer Corporation, 470 MacArthur Blvd. Bourne, MA 02532). Loggers were deployed from 2011 to 2015. For model fitting, we summarized temperatures to daily and weekly maximums, a reflection of the thermal sensitivity of coldwater organisms. 
+
+```{r sites-map, fig.cap = "Map of 168 sites where paired air and stream temperature data were collected from 2011-2015."}
+NS204_Sites_map.plot
+```
 
 Each site was linked using a GIS to the National Hydrography Dataset [NHDplus v2.1; @USGS2016] stream segment on which it is located. Using the NHDplus COMID code for each segment, we then accessed associated landscape metrics from the NHDplus and the Environmental Protection Agency StreamCat database [@hill2016]. Together, these sources contributed 174 variables for each segment (Appendix X).
 
 ## Principal Components Analysis
-We performed a Bayesian principal components analysis (PCA) of the segment-level NHDplus and StreamCat predictors at >9,000 sites of known BKT habitat obtained through EcoSHEDS (www.usgs.gov/apps/ecosheds) and the Eastern Brook Trout Joint Venture [@ebtjv2006]. We used Bayesian PCA due to its ability to take N/A values in inputs. Analysis was completed using the “pcaMethods” package in R [@stacklies2007; @rcoreteam2022]. We then extracted the top ten loadings by absolute value for the first five principle components (cumulative r$^2$: 0.61). Lastly, we extracted PCA scores for the stream segments where we had temperature data.
+We performed a Bayesian principal components analysis (PCA) of the segment-level NHDplus and StreamCat predictors at >9,000 sites of known BKT habitat obtained through EcoSHEDS (www.usgs.gov/apps/ecosheds) and the Eastern Brook Trout Joint Venture [@ebtjv2006]. Landscape variables were centered and scaled prior. We used Bayesian principal components analysis (PCA) due to its ability to take N/A values in inputs. Analysis was completed using the “pcaMethods” package in R [@stacklies2007; @rcoreteam2022]. We then extracted the top ten loadings by absolute value for the first five principle components (cumulative r$^2$: 0.61). Lastly, we extracted PCA scores for the stream segments where we had temperature data.
 
 ## Hierarchical Model
 We used Bayesian hierarchical models to infer stream segment thermal sensitivity and the effects thereupon of local landscapes. We compared linear and nonlinear models fit to daily maximum and weekly maximum temperatures. By fitting a linear model, we gain first-order estimates of the relationship between air and water temperatures [@webb1997; @erickson2000; @morrill2005; @kelleher2012a; @beaufort2020]. We removed observations where air temperatures were missing or <0$^\circ$ C. We fit observed water temperature $T_W$ ($^\circ$ C) at stream segment $i = 1,...,168$ and day/week $t = 1,...,T$
@@ -42,8 +46,22 @@ We also implemented a nonlinear model to relate observed air and water temperatu
   (\#eq:MohseniModel)
 \end{equation}
 
-where $\epsilon_i$ represents the minimum stream temperature ($^\circ$C) at site $i$, $\zeta_i$ the maximum stream temperature ($^\circ$C), $\kappa_i$ the air temperature at the inflection point of the function ($^\circ$C), and $\beta_i$ the slope of the function at $\beta_i$ ($^\circ$C^$^{-1}$).
+where $\epsilon_i$ represents the minimum stream temperature ($^\circ$C) at site $i$, $\zeta_i$ the maximum stream temperature ($^\circ$C), $\kappa_i$ the air temperature at the inflection point of the function ($^\circ$C), and $\beta_i$ a measure of the slope of the function at $\kappa_i$ ($^\circ$C^$^{-1}$). The slope of the air-water temperature relationship ($\phi_i$) at site $i$ can be calculated from the exponent $\beta_i$ using the equation
 
-*If using C-values, describe null model and C-value equations here*
+\begin{equation}
+  \beta_i = \frac{4\text{tan}\phi_i}{\zeta_i - \epsilon_i}.
+  (\#eq:CalcSlope)
+\end{equation}
+
+We used a derived quantity, $C_\beta$, to calculate the effect of landscape variables on thermal sensitivity at the 168 sites. $C_\beta$ compares the estimated variance of a model including principal components to predict air-water temperature slopes to the estimated variance of a null model, where $\beta$s are simply estimated. Following @grosbois2009, we calculate $C_\beta$ as
+
+\begin{equation}
+  C_\beta = 1 - \frac{\hat{\sigma}^2_\beta(\text{res})}{\hat{\sigma}^2_\beta(\text{tot})}\,,
+  (\#eq:C-beta)
+\end{equation}
+
+where $\hat{\sigma}^2_\beta(\text{res})$ is the estimated variance from the full model and $\hat{\sigma}^2_\beta(\text{tot})$ is the estimated variance from the null model. Assuming that the principal components explain some variation in slopes, $\hat{\sigma}^2_\beta(\text{res})$ will be lesser than $\hat{\sigma}^2_\beta(\text{tot})$, making $C_\beta$ a value between 0 and 1. Small $C_\beta$ values indicate low variance explained by the principal components, while large $C_\beta$ values indicate more variance explained by the principal components.
+
+We visually evaluated spatial structure in thermal sensitivity by plotting semivariograms of model $\beta$s using the 'geoR' package in R (cite).
 
 Model fit was assessed using posterior predictive checks of mean and standard deviation. Models were compared by calculating the deviance information criterion (DIC) for each. Lower DIC values indicate better model fit. We implemented our models utilizing Markov Chain Monte Carlo (MCMC) sampling using JAGS with the 'jagsUI' package in R [@kellner2021]. We provide code in Appendix \@ref(model-code). After a burn-in period of 1,000 samples, three chains were run until 5,000 iterations were reached. We report posterior means as point estimates and 95% highest posterior density credible intervals as estimates of uncertainty.

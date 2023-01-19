@@ -3,3 +3,13 @@ title: ''
 output: bookdown::pdf_document2
 ---
 # Appendix
+
+\renewcommand{\thefigure}{A\arabic{figure}}
+\setcounter{figure}{0}
+
+```{r logistic-weekly-betas-semivariogram-plot, fig.cap="Semivariogram depicting spatial structure in thermal sensitivity at 168 sites. Slopes (model $\beta$s) are posterior means of the nonlinear model of weekly maximum temperatures."}
+logistic_weekly_betas_semivariogram.plot
+```
+
+\newpage
+

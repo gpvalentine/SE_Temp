@@ -4,6 +4,31 @@ output: bookdown::pdf_document2
 ---
 # Results
 ## Principal Components Analysis
-The first five principal components explained 61% of the variance in 
+The first two principal components were dominated by estimates of annual stream flow and velocity (Table \@ref(tab:PCs-table)). The third principal component incorporated estimated temperature extremes within the watershed and catchment, baseflow estimates, and local colluviated (unconsolidated) sediment. The fourth principal component incorporated elevation, precipitation estimates, soil wetness and organic matter, and stream order. The fifth and final principal component was dominated by measures of urban and agricultural landcover. The first five principal components explained `r round(pca_summary.table["Cumulative R2", "PC5"], 3) * 100`% of the variance in predictors (Table \@ref(tab:PCs-table)).
 
-## Hierarchical Model
+```{r PCs-table}
+# kable(top.loadings.table,
+#       caption = "Top five principal components and their leading covariates.",
+#       digits = 3)
+top.loadings.table %>% 
+  kbl() %>% 
+  kable_classic()
+```
+
+## Hierarchical Models
+### Model Comparison
+All parameters converged at $\hat{r}$} values of 1.1 or less. Models of weekly maximum temperature offered a superior for to daily maximum temperature. Model fit improved from __ to __ going from the daily to weekly time scale for the linear models, and improved from __ to __ going from daily to weekly time scales using the nonlinear models. Posterior predictive checks suggest little evidence of lack of fit between model estimates and data. Bayesian p-values for the linear model at the daily time scale ranged from __ to __ and from __ to __ for the linear model at the weekly time scale. Bayesian p-values for the nonlinear model at the daily scale ranged from __ to __ and from __ to __ for the nonlinear model at the weekly time scale.
+
+### Thermal Sensitivity
+The slope of the air-water temperature relationship ranged from __ to __ for the 168 sites considered. Slopes were heterogeneous in space (Fig. \@ref(fig:slopes-map)). There was no spatial structure in these slopes (Appendix \@ref(fig:logistic-weekly-betas-semivariogram-plot)).
+
+```{r slopes-map, fig.cap="Air-water temperature slopes for each of 168 measurement sites. Slopes are $\beta$ values from the nonlear model of maximum weekly temperatures."}
+
+```
+
+Air temperature explained more variance in water temperature at some sites than others (is this sigma?). Larger estimated variances indicate uncertainty in the link between air temperature and water temperature.Likewise, thermal sensitivity at some sites was better explained by the local landscape than at others (is this sigma_beta?).
+
+There was considerable spatial structure in thermal sensitivity (*link to semivariogram of betas*)
+
+### Landscape Effects on Thermal Sensitivity
+PC1, characterized by estimates of streamflow, had a significantly negative effect on thermal sensitivity; while PC2, characterized by estimates of stream velocity, had a significantly positive effect on thermal sensitivity. PC4, characterized by elevation, precipitation estimates, soil wetness and organic matter, and stream order, had a slightly lesser but still positive effect on thermal sensitivity. Principal components three and five did not significantly effect thermal sensitivity.

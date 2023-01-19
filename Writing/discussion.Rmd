@@ -4,3 +4,10 @@ output: bookdown::pdf_document2
 date: "`r Sys.Date()`"
 ---
 # Discussion
+## Gap Analysis
+
+
+## Prediction
+By using widely available landscape characteristics, our methods allow us to predict thermal sensitivity at unsampled sites. We tested this method using data from the NHDplus and StreamCat at __ sites of known brook trout habitat in the southern Appalachian region.
+
+Could we be missing influences of TS occurring outside of the watershed? @wang-erlandsson2018 found that local precipitation and flow were more influenced by land-use changes outside of the basin than those inside the basin.
