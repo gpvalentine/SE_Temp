@@ -459,13 +459,122 @@ ggplot() +
 #   beta = steepest slope of the function (C)
 #   kappa = Air temp (C) at the function's inflection point
 
+## Daily Max Temperatures ##
+# Create a dataframe of the min and max water temps at each site
+min_max_waterTemps <- NS204_temps_daily_filtered %>% 
+  group_by(SegmentNo) %>% 
+  summarize(min_waterTemp = min(WaterTemp_c_MAX, na.rm = T),
+            max_waterTemp = max(WaterTemp_c_MAX, na.rm = T))
+
+# Write model
+sink("Analysis/JAGS_Files/SE_Temp_Daily_Max_StreamTemp_Logistic_Full.jags")
+cat("
+model{
+
+  ## Priors
+  
+  # theta.m - coefficients for PCA values
+  for (m in 1:6){
+   theta[m] ~ dnorm(0, 0.01)
+  }
+  
+  # tau.phi - precision for all phis
+  sd.phi ~ dunif(0, 10)
+  tau.phi <- 1/(sd.phi^2)
+  s2.phi <- sd.phi^2
+
+  for (i in 1:nCOMIDs){
+
+    # epsilon_i - estimated minimum stream temp at segment i 
+    epsilon[i] ~ dnorm(min_waterTemps[i], 1/0.001) # uses a normal distribution informed by the measured minimum temperature
+    
+    # zeta_i - estimated maximum stream temp at segment i
+    zeta[i] ~ dnorm(max_waterTemps[i], 1/0.001)
+    
+    # mu.phi_i - mean parameter for phi_i
+    mu.phi[i] <- theta[1] + theta[2] * NS204_PCA_scores[i,2] + theta[3] * NS204_PCA_scores[i,3] + theta[4] * NS204_PCA_scores[i,4] + theta[5] * NS204_PCA_scores[i,5] + theta[6] * NS204_PCA_scores[i,6]
+
+    # phi_i - measure of the steepest slope of the function at segment i
+    phi[i] ~ dnorm(mu.phi[i], tau.phi)
+    
+    # kappa_i - Air temp at the function's inflection point for segment i
+    kappa[i] ~ dnorm(20, 0.01)
+    
+  }
+  
+  # tau - prescision parameter for water temperature
+  sd ~ dunif(0,10)
+  tau <- 1/(sd^2)
+  
+  ## Process
+  for (n in 1:nObs.daily){
+    WaterTemp_Max_Pred[n] <- epsilon[SegmentNo[n]] + ((zeta[SegmentNo[n]] - epsilon[SegmentNo[n]])/(1 + exp(phi[SegmentNo[n]] * (kappa[SegmentNo[n]] - AirTemp_Max_Obs[n]))))
+    WaterTemp_Max_Obs[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
+    
+    # New data for PPCs
+    WaterTemp_Max_New[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
+  }
+  
+  # Relation to calculate phi from beta (slope), zeta, and epsilon
+  for (i in 1:nCOMIDs){
+    beta[i] <- (phi[i]*(zeta[i] - epsilon[i]))/4
+  }
+  
+  ## Posterior Predictive Checks
+  # Mean
+  mean.WaterTemp_Max_Obs <- mean(WaterTemp_Max_Obs)
+  mean.WaterTemp_Max_New <- mean(WaterTemp_Max_New)
+  pvalue.mean <- step(mean.WaterTemp_Max_New - mean.WaterTemp_Max_Obs)
+  
+  # sd
+  sd.WaterTemp_Max_Obs <- sd(WaterTemp_Max_Obs)
+  sd.WaterTemp_Max_New <- sd(WaterTemp_Max_New)
+  pvalue.sd <- step(sd.WaterTemp_Max_New - sd.WaterTemp_Max_Obs)
+}
+", fill = TRUE)
+sink()
+
+# Bundle data
+jags_data <- list(nCOMIDs = nCOMIDs,
+                  nObs.daily = nObs.daily,
+                  NS204_PCA_scores = NS204_PCA_scores,
+                  min_waterTemps = min_max_waterTemps$min_waterTemp,
+                  max_waterTemps = min_max_waterTemps$max_waterTemp,
+                  AirTemp_Max_Obs = NS204_temps_daily_filtered$AirTemp_c_MAX,
+                  WaterTemp_Max_Obs = NS204_temps_daily_filtered$WaterTemp_c_MAX,
+                  SegmentNo = NS204_temps_daily_filtered$SegmentNo)
+
+# Set parameters to save
+jags_params <- c("theta", "epsilon", "zeta", "mu.phi", "sd.phi", "s2.phi", "phi", "beta", "kappa", "sd", "pvalue.mean", "pvalue.sd")
+
+# MCMC settings
+ni <- 5000
+nc <- 3
+nb <- 1000
+nt <- 1
+
+# Fit model
+Daily_Max_StreamTemp_Logistic_Full <- jagsUI::jags(data = jags_data,
+                                                    parameters.to.save = jags_params,
+                                                    model.file = "Analysis/JAGS_Files/SE_Temp_Daily_Max_StreamTemp_Logistic_Full.jags",
+                                                    n.chains = nc,
+                                                    n.iter = ni,
+                                                    n.burnin = nb,
+                                                    n.thin = nt,
+                                                    parallel = T)
+
+# Save model output
+Daily_Max_StreamTemp_Logistic_Full_Params <- MCMCsummary(Daily_Max_StreamTemp_Logistic_Full, HPD = T)
+# Get DIC
+DIC(Daily_Max_StreamTemp_Logistic_Full)
+
+## Weekly Max Temperatures ##
 # Create a dataframe of the min and max water temps at each site
 min_max_waterTemps <- NS204_temps_weekly_filtered %>% 
   group_by(SegmentNo) %>% 
   summarize(min_waterTemp = min(WaterTemp_c_MAX, na.rm = T),
             max_waterTemp = max(WaterTemp_c_MAX, na.rm = T))
 
-## Weekly Max Temperatures ##
 # Write model
 sink("Analysis/JAGS_Files/SE_Temp_Weekly_Max_StreamTemp_Logistic_Full.jags")
 cat("
@@ -481,19 +590,14 @@ model{
   # tau.phi - precision for all phis
   sd.phi ~ dunif(0, 10)
   tau.phi <- 1/(sd.phi^2)
+  s2.phi <- sd.phi^2
 
   for (i in 1:nCOMIDs){
 
     # epsilon_i - estimated minimum stream temp at segment i 
-    #epsilon[i] ~ dgamma((5^2)/(5^2), 5/(5^2)) # the original method - moment matching for mean 5 and variance 2
-    #epsilon[i] ~ dgamma(5, 2) # testing to see if JAGS wasn't liking the moment matching. Uses raw mean and variance
-    #epsilon[i] <- min_waterTemps[i] # Uses the measured minimum temperature
     epsilon[i] ~ dnorm(min_waterTemps[i], 1/0.001) # uses a normal distribution informed by the measured minimum temperature
     
     # zeta_i - estimated maximum stream temp at segment i
-    #zeta[i] ~ dgamma((25^2)/(10^2), 25/(10^2))
-    #zeta[i] ~ dgamma(25, 10)
-    #zeta[i] <- max_waterTemps[i]
     zeta[i] ~ dnorm(max_waterTemps[i], 1/0.001)
     
     # mu.phi_i - mean parameter for phi_i
@@ -518,7 +622,7 @@ model{
     WaterTemp_Max_Obs[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
     
     # New data for PPCs
-    # WaterTemp_Max_New[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
+    WaterTemp_Max_New[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
   }
   
   # Relation to calculate phi from beta (slope), zeta, and epsilon
@@ -528,14 +632,14 @@ model{
   
   ## Posterior Predictive Checks
   # Mean
-  # mean.WaterTemp_Max_Obs <- mean(WaterTemp_Max_Obs)
-  # mean.WaterTemp_Max_New <- mean(WaterTemp_Max_New)
-  # pvalue.mean <- step(mean.WaterTemp_Max_New - mean.WaterTemp_Max_Obs)
+  mean.WaterTemp_Max_Obs <- mean(WaterTemp_Max_Obs)
+  mean.WaterTemp_Max_New <- mean(WaterTemp_Max_New)
+  pvalue.mean <- step(mean.WaterTemp_Max_New - mean.WaterTemp_Max_Obs)
   
   # sd
-  # sd.WaterTemp_Max_Obs <- sd(WaterTemp_Max_Obs)
-  # sd.WaterTemp_Max_New <- sd(WaterTemp_Max_New)
-  # pvalue.sd <- step(sd.WaterTemp_Max_New - sd.WaterTemp_Max_Obs)
+  sd.WaterTemp_Max_Obs <- sd(WaterTemp_Max_Obs)
+  sd.WaterTemp_Max_New <- sd(WaterTemp_Max_New)
+  pvalue.sd <- step(sd.WaterTemp_Max_New - sd.WaterTemp_Max_Obs)
 }
 ", fill = TRUE)
 sink()
@@ -551,7 +655,7 @@ jags_data <- list(nCOMIDs = nCOMIDs,
                   SegmentNo = NS204_temps_weekly_filtered$SegmentNo)
 
 # Set parameters to save
-jags_params <- c("theta", "epsilon", "zeta", "mu.phi", "sd.phi", "tau.phi", "phi", "beta", "kappa", "sd")
+jags_params <- c("theta", "epsilon", "zeta", "mu.phi", "sd.phi", "s2.phi", "phi", "beta", "kappa", "sd", "pvalue.mean", "pvalue.sd")
 
 # MCMC settings
 ni <- 5000
@@ -776,7 +880,7 @@ C <- (1 - ((1/StreamTemp_PCA_LM_full_v4_params['tau',1])/(1/StreamTemp_PCA_LM_v4
 # visualize betas (slopes) from full model on a map
 slopes <- Weekly_Max_StreamTemp_Logistic_Full_Params %>% 
   rownames_to_column(., "param") %>% 
-  filter(str_detect(param, "mu.beta")) %>% # separate out mu.betas
+  filter(str_detect(param, "beta")) %>% # separate out mu.betas
   cbind(NS204_Sites) %>% # bind in COMIDs
   select(mean, COMID, Lat, Long)
 
@@ -876,16 +980,16 @@ Trout_Sites <- Trout_Sites %>%
 
 # Filter pca data to just the trout sites
 Trout_site_PCA_scores <- pca_scores %>% 
-  filter(COMID %in% Trout_sites$COMID) %>% 
+  filter(COMID %in% Trout_Sites$COMID) %>% 
   arrange(COMID)
 
 # Save parameters from temperature model
-temp_model_params <- MCMCpstr(StreamTemp_PCA_LM_full_v4,
-         params = c("theta", "sd.beta"),
+temp_model_params <- MCMCpstr(Weekly_Max_StreamTemp_Logistic_Full,
+         params = c("theta", "sd.phi", "zeta", "epsilon"),
          type = 'chains')
 
 # save the number of samples to try. This is the number of iterations from the model
-n.samp <- length(temp_model_params$sd.beta)
+n.samp <- length(temp_model_params$sd.phi)
 
 # Create an empty dataframe to store predictive samples
 beta_pstrs <- as.data.frame(matrix(NA, nrow = length(Trout_site_PCA_scores$COMID), ncol = n.samp))
@@ -894,13 +998,22 @@ beta_pstrs <- as.data.frame(matrix(NA, nrow = length(Trout_site_PCA_scores$COMID
 beta_pstrs <- data.frame(COMID = Trout_site_PCA_scores$COMID) %>% 
   cbind(beta_pstrs)
 
+# Calculate median values for epsilon and zeta
+# Since they represent the min and max water temperatures and we don't have these for unsampled sites, we'll have to make do with estimates from where we do have measurements
+# It's probably not too far off, since the measured temperatures come from representative watersheds within the same region
+med_epsilon <- median(MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, params = "epsilon")[,"mean"])
+med_zeta <- median(MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, params = "zeta")[,"mean"])
+
 for (j in 1:n.samp) {
   for (i in 1:nrow(beta_pstrs)) {
-    # calculate slope at the current site
-    mu.beta.i <- temp_model_params$theta[1,j] + temp_model_params$theta[2,j] * Trout_site_PCA_scores[i,2] + temp_model_params$theta[3,j] * Trout_site_PCA_scores[i,3] + temp_model_params$theta[4,j] * Trout_site_PCA_scores[i,4] + temp_model_params$theta[5,j] * Trout_site_PCA_scores[i,5] + temp_model_params$theta[6,j] * Trout_site_PCA_scores[i,6]
+    # calculate mu.phi at the current site
+    mu.phi.i <- temp_model_params$theta[1,j] + temp_model_params$theta[2,j] * Trout_site_PCA_scores[i,2] + temp_model_params$theta[3,j] * Trout_site_PCA_scores[i,3] + temp_model_params$theta[4,j] * Trout_site_PCA_scores[i,4] + temp_model_params$theta[5,j] * Trout_site_PCA_scores[i,5] + temp_model_params$theta[6,j] * Trout_site_PCA_scores[i,6]
     
-    # save slope
-    beta_pstrs[i,j+1] <- rnorm(1, mean = as.numeric(mu.beta.i), sd = as.numeric(temp_model_params$sd.beta[j]))
+    # calculate phi
+    phi.i <- rnorm(1, mean = as.numeric(mu.phi.i), sd = as.numeric(temp_model_params$sd.phi[j]))
+    
+    # and beta from phi. Save.
+    beta_pstrs[i,j+1] <- (phi.i*(med_zeta - med_epsilon))/4
   }
 }
 
