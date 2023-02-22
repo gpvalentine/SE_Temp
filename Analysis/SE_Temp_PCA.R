@@ -25,7 +25,7 @@ set.seed(1234)
 
 # Load and format the data
 # Load EPA Streamcat data for SE US
-StreamCat_Covars <- fread(here("Data", "SE_Temp_StreamCat_Covars_Combined.csv"))
+StreamCat_Covars <- fread("Data/SE_Temp_StreamCat_Covars_Combined.csv")
 
 # Load national NHDplus data
 NHDplus_data <- fread("/Users/georgepv/OneDrive - Colostate/SE Eco-Hydrology Project/Data/GIS Data/NHDplus/NHDPlusV21_NationalData_Seamless_Geodatabase_Lower48_07/NHDPlusv2.1_National_FlowlineData.csv")
@@ -147,8 +147,8 @@ pca_scores <- pca_scores %>%
 # Max stream temperature model
 
 # Load NS204 temperature data
-NS204_temps_daily <- fread(here("Data", "NS204_temps_daily.csv"))
-NS204_temps_weekly <- fread(here("Data", "NS204_temps_weekly.csv"))
+NS204_temps_daily <- fread("Data/NS204_temps_daily.csv")
+NS204_temps_weekly <- fread("Data/NS204_temps_weekly.csv")
 
 # add COMIDs to the NS204 site data
 # I use the file originally used to get flow data - I just need a file that relates SiteIDs to COMIDs
@@ -273,7 +273,7 @@ jags_data <- list(nCOMIDs = nCOMIDs,
                   SegmentNo = NS204_temps_daily_filtered_LM$SegmentNo)
 
 # Set parameters to save
-jags_params <- c("alpha", "beta", "mu.beta", "sd.beta", "tau.beta", "theta", "tau", "sd", "pvalue.mean", "pvalue.sd")
+jags_params <- c("alpha", "beta", "mu.beta", "sd.beta", "tau.beta", "theta", "tau", "sd", "pvalue.mean", "pvalue.sd", "WaterTemp_Max_New")
 
 # MCMC settings
 ni <- 5000
@@ -287,7 +287,7 @@ Daily_Max_StreamTemp_LM_Full <- jagsUI::jags(data = jags_data,
                              model.file = "Analysis/JAGS_Files/SE_Temp_Daily_Max_StreamTemp_LM_Full.jags",
                              n.chains = nc,
                              n.iter = ni,
-                             n.burnin = nb,
+                             n.burnin = nb, 
                              n.thin = nt,
                              parallel = T)
 
@@ -605,7 +605,6 @@ model{
 
     # phi_i - measure of the steepest slope of the function at segment i
     phi[i] ~ dnorm(mu.phi[i], tau.phi)
-    #phi[i] ~ dnorm(0, 0.01) # testing to see if phi would change if I removed the model on the mean
     
     # kappa_i - Air temp at the function's inflection point for segment i
     kappa[i] ~ dnorm(20, 0.01)
@@ -629,17 +628,6 @@ model{
   for (i in 1:nCOMIDs){
     beta[i] <- (phi[i]*(zeta[i] - epsilon[i]))/4
   }
-  
-  ## Posterior Predictive Checks
-  # Mean
-  mean.WaterTemp_Max_Obs <- mean(WaterTemp_Max_Obs)
-  mean.WaterTemp_Max_New <- mean(WaterTemp_Max_New)
-  pvalue.mean <- step(mean.WaterTemp_Max_New - mean.WaterTemp_Max_Obs)
-  
-  # sd
-  sd.WaterTemp_Max_Obs <- sd(WaterTemp_Max_Obs)
-  sd.WaterTemp_Max_New <- sd(WaterTemp_Max_New)
-  pvalue.sd <- step(sd.WaterTemp_Max_New - sd.WaterTemp_Max_Obs)
 }
 ", fill = TRUE)
 sink()
@@ -652,10 +640,14 @@ jags_data <- list(nCOMIDs = nCOMIDs,
                   max_waterTemps = min_max_waterTemps$max_waterTemp,
                   AirTemp_Max_Obs = NS204_temps_weekly_filtered$AirTemp_c_MAX,
                   WaterTemp_Max_Obs = NS204_temps_weekly_filtered$WaterTemp_c_MAX,
+                  PPC_dat = matrix(c(NS204_temps_weekly_filtered$SegmentNo, 
+                                     rep(NA, length(NS204_temps_weekly_filtered$SegmentNo)), 
+                                     rep(NA, length(NS204_temps_weekly_filtered$SegmentNo))), 
+                                   ncol = 3),
                   SegmentNo = NS204_temps_weekly_filtered$SegmentNo)
 
 # Set parameters to save
-jags_params <- c("theta", "epsilon", "zeta", "mu.phi", "sd.phi", "s2.phi", "phi", "beta", "kappa", "sd", "pvalue.mean", "pvalue.sd")
+jags_params <- c("theta", "epsilon", "zeta", "mu.phi", "sd.phi", "s2.phi", "phi", "beta", "kappa", "sd", "WaterTemp_Max_Obs", "WaterTemp_Max_New")
 
 # MCMC settings
 ni <- 5000
@@ -674,11 +666,24 @@ Weekly_Max_StreamTemp_Logistic_Full <- jagsUI::jags(data = jags_data,
                                               parallel = T)
 
 # Save model output
-Weekly_Max_StreamTemp_Logistic_Full_Params <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, HPD = T)
+Weekly_Max_StreamTemp_Logistic_Full_Params <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, HPD = T,
+                                                          params = c("theta", "epsilon", "zeta", "mu.phi", "sd.phi", "s2.phi", "phi", "beta", "kappa", "sd"))
 # Get DIC
 DIC(Weekly_Max_StreamTemp_Logistic_Full)
 
 MCMCtrace(Weekly_Max_StreamTemp_Logistic_Full, params = "zeta", pdf = F)
+
+## Posterior predictive check
+Weekly_Max_Logistic_Watertemp <- data.frame(SegmentNo = NS204_temps_weekly_filtered$SegmentNo,
+                                            Obs = MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, HPD = T, params = "WaterTemp_Max_Obs"),
+                                            New = MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, HPD = T, params = "WaterTemp_Max_New"))
+
+for (i in 1:nCOMIDS) {
+  for (n in 1:nObs.weekly) {
+    
+  }
+  
+}
 
 ## Plot fit over data to visualize
 # Extract parameters
@@ -877,26 +882,52 @@ C.phi <- (1 - ((1/Weekly_Max_StreamTemp_Logistic_Full_Params['tau.phi',1])/(1/We
 C <- (1 - ((1/StreamTemp_PCA_LM_full_v4_params['tau',1])/(1/StreamTemp_PCA_LM_v4_null_params['tau',1])))
 
 #################################
-# visualize betas (slopes) from full model on a map
-slopes <- Weekly_Max_StreamTemp_Logistic_Full_Params %>% 
+# Regression slopes from linear models
+# used for comparison to findings from other studies
+weekly_linear_slopes.table <- Weekly_Max_StreamTemp_LM_Full_params %>% 
   rownames_to_column(., "param") %>% 
-  filter(str_detect(param, "beta")) %>% # separate out mu.betas
+  filter(str_detect(param, "^beta"))  # separate out betas
+
+daily_linear_slopes.table <- Daily_Max_StreamTemp_LM_Full_params %>% 
+  rownames_to_column(., "param") %>% 
+  filter(str_detect(param, "^beta"))
+
+# Maximum slopes from nonlinear models
+weekly_nonlinear_slopes.table <- Weekly_Max_StreamTemp_Logistic_Full_Params %>% 
+  rownames_to_column(., "param") %>% 
+  filter(str_detect(param, "^beta"))
+
+daily_nonlinear_slopes.table <- Daily_Max_StreamTemp_Logistic_Full_Params %>% 
+  rownames_to_column(., "param") %>% 
+  filter(str_detect(param, "^beta"))
+
+# Are linear regression slopes correlated to nonlinear regression slopes?
+# Daily
+cor(daily_linear_slopes.table$mean, daily_nonlinear_slopes.table$mean, method = "pearson")
+# Weekly
+cor(weekly_linear_slopes.table$mean, weekly_nonlinear_slopes.table$mean, method = "pearson")
+
+#################################
+# visualize nonlinear betas (slopes) from weekly model on a map
+weekly_nonlinear_slopes.table <- weekly_nonlinear_slopes.table %>% 
   cbind(NS204_Sites) %>% # bind in COMIDs
   select(mean, COMID, Lat, Long)
 
 # Join in (uncentered) landscape covariates
-slopes <- slopes %>% 
+weekly_nonlinear_slopes.table <- weekly_nonlinear_slopes.table %>% 
   left_join(BKT_Habitat_StreamSegment_covars2)
   
 # what variables are slopes correlated with?
-cor(slopes[,c(1,5:7,14:129)], method = "spearman", use = "pairwise.complete.obs")[1,]
-
+slope_corrs <- data.frame(corr = cor(weekly_nonlinear_slopes.table[,c(1,3:178)], method = "spearman", use = "pairwise.complete.obs")[1,]) %>% 
+  rownames_to_column("param") %>% 
+  arrange(-abs(corr)) %>% 
+  .[-(1:3),]
 
 ggplot() +
   geom_polygon(data = US_states, 
                aes(x = long, y = lat, group = group),
                color = "black", fill = NA) +
-  geom_point(data = slopes, 
+  geom_point(data = weekly_nonlinear_slopes.table, 
              aes(x = Long, y = Lat, color = mean)) +
   coord_map("bonne",
             lat0 = 40,
@@ -906,8 +937,8 @@ ggplot() +
        y = "Lat",
        #title = "Posterior Mean Air-Water Temperature Slopes \nat NS204 Sites",
        color = expression(beta)) +
-  #scale_color_viridis_c(limits=c(0,1)) +
-  scale_color_viridis_c(limits=c(min(slopes$mean),max(slopes$mean))) +
+  scale_color_viridis_c() +
+  #scale_color_viridis_c(limits=c(min(slopes$mean),max(slopes$mean))) +
   theme_classic()
 
 ###############################
