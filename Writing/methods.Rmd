@@ -2,21 +2,25 @@
 title: ''
 output: bookdown::pdf_document2
 ---
-# Methods
 ## Dataset and Study Area
-We considered paired air and water temperature data from 168 sites throughout the southern Appalachian region of the USA (Fig. \@ref(fig:sites-map)). Sites were subsetted from 204 randomly selected subwatersheds identified as capable of supporting populations of brook trout [*Salvelinus fontinalis*; @ebtjv2006]. Located at the downstream outlet of the subwatersheds, at each site a logger underwater was paired with a logger affixed to the bank or a tree. Stream and air temperatures were measured every 30 minutes using remote loggers (Onset Computer Corporation, 470 MacArthur Blvd. Bourne, MA 02532). Loggers were deployed from 2011 to 2015. For model fitting, we summarized temperatures to daily and weekly maximums, a reflection of the thermal sensitivity of coldwater organisms. 
 
-```{r sites-map, fig.cap = "Map of 168 sites where paired air and stream temperature data were collected from 2011-2015."}
-NS204_Sites_map.plot
+We considered paired air and water temperature data from 203 sites throughout the southern Appalachian region of the USA (Fig. \@ref(fig:sites-map)). Sites were located in randomly selected subwatersheds identified as capable of supporting populations of brook trout [*Salvelinus fontinalis*; @ebtjv2006]. Located at the downstream outlet of the subwatersheds, at each site a logger underwater was paired with a logger affixed to the bank or a tree. Stream and air temperatures were measured every 30 minutes using remote loggers (Onset Computer Corporation, Bourne, MA 02532). Loggers were deployed from 2011 to 2015. For model fitting, we summarized temperatures to daily and weekly maximums, reflecting the importance of high water temperatures in the distribution, behavior, and survival of stream fish [@eaton1995; @wehrly2007; @mccullough2009].
+
+(ref:sites-map-cap) Map of 203 sites where paired air and stream temperature data were collected from 2011-2015. Stream and air temperatures were measured every 30 minutes using paired remote loggers (Onset Computer Corporation, Bourne, MA 02532). Sites were located at the downstream outlets of randomly selected subwatersheds identified as capable of supporting populations of brook trout [*Salvelinus fontinalis*; @ebtjv2006].
+
+```{r sites-map, fig.cap = "(ref:sites-map-cap)"}
+knitr::include_graphics("../Results/v1.0/NS204_Sites_Map_QGIS.jpeg")
 ```
 
-Each site was linked using a GIS to the National Hydrography Dataset [NHDplus v2.1; @USGS2016] stream segment on which it is located. Using the NHDplus COMID code for each segment, we then accessed associated landscape metrics from the NHDplus and the Environmental Protection Agency StreamCat database [@hill2016]. Together, these sources contributed 174 variables for each segment (Appendix X).
+Each site was linked using a GIS to the National Hydrography Dataset [NHDplus v2.1; @USGS2016] stream segment on which it was located. Using the NHDplus COMID code for each segment, we then accessed associated landscape metrics from the NHDplus and the Environmental Protection Agency StreamCat database [@hill2016]. Together, these sources contributed 174 variables for each segment (Appendix X).
 
 ## Principal Components Analysis
+
 We performed a Bayesian principal components analysis (PCA) of the segment-level NHDplus and StreamCat predictors at >9,000 sites of known BKT habitat obtained through EcoSHEDS (www.usgs.gov/apps/ecosheds) and the Eastern Brook Trout Joint Venture [@ebtjv2006]. Landscape variables were centered and scaled prior. We used Bayesian principal components analysis (PCA) due to its ability to take N/A values in inputs. Analysis was completed using the “pcaMethods” package in R [@stacklies2007; @rcoreteam2022]. We then extracted the top ten loadings by absolute value for the first five principle components (cumulative r$^2$: 0.61). Lastly, we extracted PCA scores for the stream segments where we had temperature data.
 
 ## Hierarchical Model
-We used Bayesian hierarchical models to infer stream segment thermal sensitivity and the effects thereupon of local landscapes. We compared linear and nonlinear models fit to daily maximum and weekly maximum temperatures. By fitting a linear model, we gain first-order estimates of the relationship between air and water temperatures [@webb1997; @erickson2000; @morrill2005; @kelleher2012a; @beaufort2020]. We removed observations where air temperatures were missing or <0$^\circ$ C. We fit observed water temperature $T_W$ ($^\circ$ C) at stream segment $i = 1,...,168$ and day/week $t = 1,...,T$
+
+We used Bayesian hierarchical models to infer stream segment thermal sensitivity and the effects thereupon of local landscapes. We compared linear and logistic models fit to daily maximum and weekly maximum temperatures. By fitting extracting the slopes of these functions, we gain first-order estimates of the relationship between air and water temperatures [@webb1997; @erickson2000; @morrill2005; @kelleher2012; @beaufort2020]. We cleaned data by removing observations where air temperatures were missing or were less than 0$^\circ$ C. We fit observed water temperature $T_W$ ($^\circ$ C) at stream segment $i = 1,...,168$ and day/week $t = 1,...,T$
 
 \begin{equation}
   \text{T}_{Wi,t} \sim \text{normal}(g(\alpha_i, \beta_i, \text{T}_{Ai,t}), \sigma^2)
@@ -39,24 +43,24 @@ $\beta_i$, the slope of the linear air-water temperature relationship at each si
 
 $\bm{\theta}$, the contribution of each principal component to thermal sensitivity, arises from $\theta_l \sim \text{normal}(0, 100)$.
 
-We also implemented a nonlinear model to relate observed air and water temperatures. We consider the nonlinear model due to the established nonlinear behaviors of water temperature at high and low air temperatures [@mohseni1998a]. Following @mohseni1998a, we replace Eq. \@ref(eq:Linear) with
+We also implemented a nonlinear model to relate observed air and water temperatures. We consider this functionl due to the established nonlinear behaviors of water temperature at high and low air temperatures [@mohseni1998a]. Following @mohseni1998a, we replace Eq. \@ref(eq:Linear) with
 
 \begin{equation}
-  g(\epsilon_i, \zeta_i, \beta_i, \kappa_i, \text{T}_{Ai,t}) = \epsilon_i + \frac{\zeta_i - \epsilon_i}{1 + e^{\beta_i(\kappa_i - \text{T}_{Ai,t})}},
+  g(\epsilon_i, \zeta_i, \beta_i, \kappa_i, \text{T}_{Ai,t}) = \epsilon_i + \frac{\zeta_i - \epsilon_i}{1 + e^{\phi_i(\kappa_i - \text{T}_{Ai,t})}},
   (\#eq:MohseniModel)
 \end{equation}
 
-where $\epsilon_i$ represents the minimum stream temperature ($^\circ$C) at site $i$, $\zeta_i$ the maximum stream temperature ($^\circ$C), $\kappa_i$ the air temperature at the inflection point of the function ($^\circ$C), and $\beta_i$ a measure of the slope of the function at $\kappa_i$ ($^\circ$C^$^{-1}$). The slope of the air-water temperature relationship ($\phi_i$) at site $i$ can be calculated from the exponent $\beta_i$ using the equation
+where $\epsilon_i$ represents the minimum stream temperature ($^\circ$C) at site $i$, $\zeta_i$ the maximum stream temperature ($^\circ$C), $\kappa_i$ the air temperature at the inflection point of the function ($^\circ$C), and $\phi_i$ a measure of the slope of the function at $\kappa_i$ ($^\circ$C^$^{-1}$). Similar to $beta_i$ in \@ref(eq:Linear), $\phi_i$ arises from $\beta_i \sim \text{normal}(g(\theta_l, \text{PCA}_{l,i}), \sigma^2_\beta)$ where $\sigma_\beta \sim \text{uniform}(0,10)$ and $g(\theta_l, \text{PCA}_{l,i})$ for $l$ in $1,...,6$ is \@ref(eq:PCALinear). The maximum slope of the air-water temperature relationship ($\beta_i$) at site $i$ can be calculated from the exponent $\phi_i$ using the equation
 
 \begin{equation}
   \beta_i = \frac{4\text{tan}\phi_i}{\zeta_i - \epsilon_i}.
   (\#eq:CalcSlope)
 \end{equation}
 
-We used a derived quantity, $C_\beta$, to calculate the effect of landscape variables on thermal sensitivity at the 168 sites. $C_\beta$ compares the estimated variance of a model including principal components to predict air-water temperature slopes to the estimated variance of a null model, where $\beta$s are simply estimated. Following @grosbois2009, we calculate $C_\beta$ as
+We used a derived quantity, $C_\beta$, to calculate the effect of landscape variables on thermal sensitivity at the 203 sites. $C_\beta$ compares the estimated variance in thermal sensitivity of a model including principal components to predict air-water temperature slopes to the estimated variance in thermal sensitivity of a null model, where $\beta$s are simply estimated. Following @grosbois2009, we calculate $C_\beta$ as
 
 \begin{equation}
-  C_\beta = 1 - \frac{\hat{\sigma}^2_\beta(\text{res})}{\hat{\sigma}^2_\beta(\text{tot})}\,,
+  C_\beta = 1 - \frac{\hat{\sigma}^2_\beta(\text{res})}{\hat{\sigma}^2_\beta(\text{tot})},
   (\#eq:C-beta)
 \end{equation}
 
@@ -64,4 +68,10 @@ where $\hat{\sigma}^2_\beta(\text{res})$ is the estimated variance from the full
 
 We visually evaluated spatial structure in thermal sensitivity by plotting semivariograms of model $\beta$s using the 'geoR' package in R (cite).
 
-Model fit was assessed using posterior predictive checks of mean and standard deviation. Models were compared by calculating the deviance information criterion (DIC) for each. Lower DIC values indicate better model fit. We implemented our models utilizing Markov Chain Monte Carlo (MCMC) sampling using JAGS with the 'jagsUI' package in R [@kellner2021]. We provide code in Appendix \@ref(model-code). After a burn-in period of 1,000 samples, three chains were run until 5,000 iterations were reached. We report posterior means as point estimates and 95% highest posterior density credible intervals as estimates of uncertainty.
+To evaluate the performance of our models, we completed posterior predictive checks for the test statistics of mean and coefficient of variation. These checks test for lack of fit using Bayesian $p$-values, defined as the probability that simulated data are more extreme than the observed data [@gelman2004]. Using this method, models with a lack of fit produce Bayesian $p$-values close to 0 or 1. Models were compared using the deviance information criterion (DIC) and root mean square error (RMSE) of estimation. DIC is Bayesian analogue to AIC [@spiegelhalter2002]. Lower DIC and RMSE values indicate better relative and absolute model fit of those considered. We implemented our models utilizing Markov Chain Monte Carlo (MCMC) sampling using JAGS with the 'jagsUI' package in R [@kellner2021]. We provide code in online supplements. After a burn-in period of 1,000 samples, three chains were run until 5,000 iterations were reached. We report posterior means as point estimates and 95% highest posterior density intervals as estimates of uncertainty.
+
+## Thermal Sensitivity Predictions and Gap Analysis
+
+We used \@ref(eq:PCALinear) to predict thermal sensitivity at unsampled sites throughout the study area. In Section \@ref(principal-components-analysis), we calculated principal components for >9,000 sites of known brook trout habitat. Using these principal components and $\bm{\theta}$ values calculated from \@ref(eq:PCALinear) and the weekly logistic model (\@ref(eq:MohseniModel)), we estimated thermal sensitivity at these unsampled sites. We defined preferred thermal habitat as the lowest 25th percentile of these values. 
+
+Assuming that lower thermal sensitivity equates to better habitat for coldwater organisms such as brook trout, we performed a gap analysis [@jennings2000] to evaluate the proportion of preferred thermal habitat that lies in conserved areas. Gap analyses allows the identification of valuable habitat that is unconserved. We accessed a shapefile of protected areas in the study area from the US Geological Survey's Protected Areas Database [@PADUS2022]. We included protected areas with USGS Gap Analysis Project Status Codes 1-3, but not 4. This includes at the least protection from conversion of natural land cover and at the most National Park or Wilderness Area designation. In a GIS [@QGIS_software], we clipped all USGS NHDplus stream segments [@USGS2016] that were in these protected areas. Finally, we calculated the proportion of preferred thermal habitat sites that are located on these stream segments within protected areas.

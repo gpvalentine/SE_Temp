@@ -3,11 +3,27 @@ title: ''
 output: bookdown::pdf_document2
 date: "`r Sys.Date()`"
 ---
-# Discussion
+We used observed air and water temperatures at 168 sites throughout the south and central eastern USA to quantify stream thermal sensitivity at multiple temporal scales using multiple models. We relate this thermal sensitivity to hydraulic and landscape characteristics, inferring local drivers that allow prediction at unsampled sites. We find that a) weekly temperatures offered better fit than daily temperatures and the nonlinear model outperformed the linear model, b) thermal sensitivity is best explained by local hydrology such as catchment/watershed velocity ___, and c) __% of preferred thermal habitat in the southeast is currently conserved.
+
+## Model Comparison and Temporal Summaries
+
+Temperature values summarized at weekly intervals outperformed those summarized at daily intervals. This finding is in agreement with those of other researchers [@stefan1993; @kelleher2012; @morrill2005]. By summarizing across a broader temporal interval, the time lag between air and water temperatures can be negated [@stefan1993]. @mohseni1999a, @caissie2001, and @mohseni2003 have all found that the logistic model did not fit well to temperatures grouped at daily intervals. Linear slopes were generally lower/higher than findings from other studies, indicating that water temperatures at trout habitat in the southeast US are more/less buffered than those in other regions.
+
+The relative fits of linear and nonlinear models varies by study (region?). We found that nonlinear regression offered improved fit over linear regression, a finding that is shared by some [@kelleher2012; @mayer2012], but not all research that has compared the two [@beaufort2020; @laanaya2017]. This difference may be due, in part, to the removal of freezing temperatures from the linear regression and that fact that our analysis was performed in a warmer climate than some other studies [notably @kelleher2012]. Geographic
+- Compare linear regression slopes to those found by other researchers in other regions.
+
+## Landscape Influence
+
+- @mayer2012 results show that streamflow is an important explanatory variable in predicting water temperature
+- We expected that groundwater influence, as represented by baseflow index, would be an important predictor of thermal sensitivity (see mayer2012 sec. 4.2 for more details)
+
 ## Gap Analysis
 
 
 ## Prediction
+
 By using widely available landscape characteristics, our methods allow us to predict thermal sensitivity at unsampled sites. We tested this method using data from the NHDplus and StreamCat at __ sites of known brook trout habitat in the southern Appalachian region.
 
 Could we be missing influences of TS occurring outside of the watershed? @wang-erlandsson2018 found that local precipitation and flow were more influenced by land-use changes outside of the basin than those inside the basin.
+
+A common drawback of studies of thermal sensitivity is that air temperatures are derived from model outputs or the most convenient meteorological station [@beaufort2020; @hare2021; @kelleher2012]. This means that trends in air temperatures used for analysis may not reflect the true trends influencing stream temperature at the local scale [@kanno2014]. Solar radiation and the influence of local topography have been shown to substantial influence variation in the microclimate across the landscape, particularly in mountainous areas [@aalto2017; @tscholl2022]. Furthermore, weather stations are commonly situated in open, flat areas where they miss the thermal effecs of topography and tree cover [@defrenne2016; @graae2012]. By pairing air and water temperature loggers, our study design allows the consideration of highly local atmospheric influence on stream temperature.
