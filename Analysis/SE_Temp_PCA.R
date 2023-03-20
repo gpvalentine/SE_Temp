@@ -61,6 +61,7 @@ BKT_Habitat_StreamSegment_covars <- StreamSegment_covars %>%
 # Remove columns that have all zeros or all the same value: they cannot be scaled by the PCA and won't be useful as predictors
 BKT_Habitat_StreamSegment_covars2 <- BKT_Habitat_StreamSegment_covars %>% 
   na_if(-9998) %>%  # Replace -9998 (the nodata value) with NA
+  filter(StreamOrde < 5) %>% # this filters out "rivers" that were getting super low predicted slopes. See "Script to troubleshoot predicted slope outliers.R"
   #filter(!DamDensCat > 0) %>%  # and filter out sites with dams in their catchments. Dams mimic the effects of groundwater and obscure the true buffering
   select_if(~n_distinct(.) > 2) %>% 
   select_if(is.numeric) %>% # retain only numeric columns
@@ -203,6 +204,18 @@ NS204_PCA_scores <- pca_scores %>%
   filter(COMID %in% NS204_temps_daily_filtered$COMID) %>% 
   arrange(COMID)
 
+x <- NS204_PCA_scores %>% 
+  left_join(BKT_Habitat_StreamSegment_covars2)
+
+ggplot() +
+geom_polygon(data = US_states, 
+             aes(x = long, y = lat, group = group),
+             color = "black", fill = NA) +
+  geom_point(data = x, 
+             aes(x = Long, y = Lat,),
+             color = "black") +
+  
+
 nCOMIDs <- nrow(NS204_PCA_scores)
 nObs.daily <- nrow(NS204_temps_daily_filtered)
 nObs.weekly <- nrow(NS204_temps_weekly_filtered)
@@ -257,15 +270,26 @@ model{
   
   ## Derived Quantities
   # Posterior predictive checks
-  for (n in 1:nObs.daily){
-    PPC[n] <- step(WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])
-  }
+  # for (n in 1:nObs.daily){
+  #   PPC[n] <- step(WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])
+  # }
   
   # Calculate RMSE
   for (n in 1:nObs.daily){
     SE[n] <- ((WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])^2)
   }
   RMSE <- sqrt(sum(SE)/nObs.daily)
+  
+    # Calculate Bayesian R^2
+  for (n in 1:nObs.daily){
+    resid[n] <- (WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])
+    x.resid[n] <- (resid[n] - mean(resid))^2
+    x.pred[n] <- (WaterTemp_Max_Pred[n] - mean(WaterTemp_Max_Pred))^2
+  }
+  
+  var.resid <- sum(x.resid)/(nObs.daily - 1)
+  var.pred <- sum(x.pred)/(nObs.daily - 1)
+  R2 <- var.pred/(var.pred + var.resid)
 }
 ", fill = TRUE)
 sink()
@@ -279,7 +303,7 @@ jags_data <- list(nCOMIDs = nCOMIDs,
                   SegmentNo = NS204_temps_daily_filtered_LM$SegmentNo)
 
 # Set parameters to save
-jags_params <- c("alpha", "beta", "mu.beta", "sd.beta", "tau.beta", "theta", "tau", "sd", "RMSE", "PPC")
+jags_params <- c("alpha", "beta", "mu.beta", "sd.beta", "tau.beta", "theta", "tau", "sd", "RMSE", "R2")
 
 # MCMC settings
 ni <- 5000
@@ -300,38 +324,38 @@ Daily_Max_StreamTemp_LM_Full <- jagsUI::jags(data = jags_data,
                              parallel = T)
 
 # Save model summary
-Daily_Max_StreamTemp_LM_Full_params <- MCMCsummary(Daily_Max_StreamTemp_LM_Full, HPD = T, excl = "PPC")
+Daily_Max_StreamTemp_LM_Full_params <- MCMCsummary(Daily_Max_StreamTemp_LM_Full, HPD = T)
 # Get DIC
-DIC(Daily_Max_StreamTemp_LM_Full)
+Daily_LM_DIC.val <- DIC(Daily_Max_StreamTemp_LM_Full)
 
-## Posterior predictive check
-Daily_Max_LM_PPC_data <- data.frame(SegmentNo = NS204_temps_daily_filtered_LM$SegmentNo,
-                                     PPC = MCMCsummary(Daily_Max_StreamTemp_LM_Full, HPD = T, params = "PPC"))
-
-Daily_Max_LM_PPCs <- Daily_Max_LM_PPC_data %>% 
-  group_by(SegmentNo) %>% 
-  dplyr::summarise(PPC_mean = mean(PPC.mean),
-                   PPC_sd = sd(PPC.mean))
-
-Daily_Max_LM_PPC_summ.table <- as.data.frame(apply(Daily_Max_LM_PPCs[,2:3],2,summary))
+# ## Posterior predictive check
+# Daily_Max_LM_PPC_data <- data.frame(SegmentNo = NS204_temps_daily_filtered_LM$SegmentNo,
+#                                      PPC = MCMCsummary(Daily_Max_StreamTemp_LM_Full, HPD = T, params = "PPC"))
+# 
+# Daily_Max_LM_PPCs <- Daily_Max_LM_PPC_data %>% 
+#   group_by(SegmentNo) %>% 
+#   dplyr::summarise(PPC_mean = mean(PPC.mean),
+#                    PPC_sd = sd(PPC.mean))
+# 
+# Daily_Max_LM_PPC_summ.table <- as.data.frame(apply(Daily_Max_LM_PPCs[,2:3],2,summary))
 
 # plot to visualize
-plot_data <- Daily_Max_StreamTemp_LM_Full_params %>% 
-  rownames_to_column("param") %>% 
-  filter(str_detect(param, "WaterTemp_Max_New")) %>% 
-  select(mean) %>% 
-  cbind(AirTemp_c_MAX = NS204_temps_daily_filtered$AirTemp_c_MAX,
-        WaterTemp_c_MAX = NS204_temps_daily_filtered$WaterTemp_c_MAX,
-        COMID = NS204_temps_daily_filtered$COMID)
-
-plot_data %>% 
-  filter(COMID %in% sample(unique(COMID), 1)) %>% 
-  ggplot() +
-  geom_point(aes(x = AirTemp_c_MAX,
-                 y = WaterTemp_c_MAX)) +
-  geom_line(aes(x = AirTemp_c_MAX,
-                y = mean),
-            color = "red")
+# plot_data <- Daily_Max_StreamTemp_LM_Full_params %>% 
+#   rownames_to_column("param") %>% 
+#   filter(str_detect(param, "WaterTemp_Max_New")) %>% 
+#   select(mean) %>% 
+#   cbind(AirTemp_c_MAX = NS204_temps_daily_filtered$AirTemp_c_MAX,
+#         WaterTemp_c_MAX = NS204_temps_daily_filtered$WaterTemp_c_MAX,
+#         COMID = NS204_temps_daily_filtered$COMID)
+# 
+# plot_data %>% 
+#   filter(COMID %in% sample(unique(COMID), 1)) %>% 
+#   ggplot() +
+#   geom_point(aes(x = AirTemp_c_MAX,
+#                  y = WaterTemp_c_MAX)) +
+#   geom_line(aes(x = AirTemp_c_MAX,
+#                 y = mean),
+#             color = "red")
 
 ## Weekly Max Temperatures ##
 # Write model
@@ -388,6 +412,17 @@ model{
     SE[n] <- ((WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])^2)
   }
   RMSE <- sqrt(sum(SE)/nObs.weekly)
+  
+  # Calculate Bayesian R^2
+  for (n in 1:nObs.weekly){
+    resid[n] <- (WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])
+    x.resid[n] <- (resid[n] - mean(resid))^2
+    x.pred[n] <- (WaterTemp_Max_Pred[n] - mean(WaterTemp_Max_Pred))^2
+  }
+  
+  var.resid <- sum(x.resid)/(nObs.weekly - 1)
+  var.pred <- sum(x.pred)/(nObs.weekly - 1)
+  R2 <- var.pred/(var.pred + var.resid)
 }
 ", fill = TRUE)
 sink()
@@ -401,7 +436,7 @@ jags_data <- list(nCOMIDs = nCOMIDs,
                   SegmentNo = NS204_temps_weekly_filtered_LM$SegmentNo)
 
 # Set parameters to save
-jags_params <- c("alpha", "beta", "mu.beta", "sd.beta", "tau.beta", "theta", "tau", "sd", "RMSE", "PPC")
+jags_params <- c("alpha", "beta", "mu.beta", "sd.beta", "tau.beta", "theta", "tau", "sd", "RMSE", "R2", "PPC")
 
 # MCMC settings
 ni <- 5000
@@ -424,7 +459,7 @@ Weekly_Max_StreamTemp_LM_Full <- jagsUI::jags(data = jags_data,
 # Save model output
 Weekly_Max_StreamTemp_LM_Full_params <- MCMCsummary(Weekly_Max_StreamTemp_LM_Full, HPD = T, excl = "PPC")
 # Get DIC
-DIC(Weekly_Max_StreamTemp_LM_Full)
+Weekly_LM_DIC.val <- DIC(Weekly_Max_StreamTemp_LM_Full)
 
 ## Posterior predictive check
 Weekly_Max_LM_PPC_data <- data.frame(SegmentNo = NS204_temps_weekly_filtered_LM$SegmentNo,
@@ -552,15 +587,26 @@ model{
   }
   
   # Posterior predictive checks
-  for (n in 1:nObs.daily){
-  PPC[n] <- step(WaterTemp_Max_Obs[n] - WaterTemp_Max_Pred[n])
-  }
+  # for (n in 1:nObs.daily){
+  # PPC[n] <- step(WaterTemp_Max_Obs[n] - WaterTemp_Max_Pred[n])
+  # }
   
   # Calculate RMSE
   for (n in 1:nObs.daily){
     SE[n] <- ((WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])^2)
   }
   RMSE <- sqrt(sum(SE)/nObs.daily)
+  
+  # Calculate Bayesian R^2
+  for (n in 1:nObs.daily){
+    resid[n] <- (WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])
+    x.resid[n] <- (resid[n] - mean(resid))^2
+    x.pred[n] <- (WaterTemp_Max_Pred[n] - mean(WaterTemp_Max_Pred))^2
+  }
+  
+  var.resid <- sum(x.resid)/(nObs.daily - 1)
+  var.pred <- sum(x.pred)/(nObs.daily - 1)
+  R2 <- var.pred/(var.pred + var.resid)
 }
 ", fill = TRUE)
 sink()
@@ -576,7 +622,7 @@ jags_data <- list(nCOMIDs = nCOMIDs,
                   SegmentNo = NS204_temps_daily_filtered$SegmentNo)
 
 # Set parameters to save
-jags_params <- c("theta", "epsilon", "zeta", "mu.phi", "sd.phi", "s2.phi", "phi", "beta", "kappa", "sd", "RMSE", "PPC")
+jags_params <- c("theta", "epsilon", "zeta", "mu.phi", "sd.phi", "s2.phi", "phi", "beta", "kappa", "sd", "RMSE", "R2")
 
 # MCMC settings
 ni <- 5000
@@ -597,20 +643,20 @@ Daily_Max_StreamTemp_Logistic_Full <- jagsUI::jags(data = jags_data,
                                                     parallel = T)
 
 # Save model output
-Daily_Max_StreamTemp_Logistic_Full_Params <- MCMCsummary(Daily_Max_StreamTemp_Logistic_Full, HPD = T, excl = "PPC")
+Daily_Max_StreamTemp_Logistic_Full_Params <- MCMCsummary(Daily_Max_StreamTemp_Logistic_Full, HPD = T)
 # Get DIC
-DIC(Daily_Max_StreamTemp_Logistic_Full)
+Daily_Logistic_DIC.val <- DIC(Daily_Max_StreamTemp_Logistic_Full)
 
-## Posterior predictive check
-Daily_Max_Logistic_PPC_data <- data.frame(SegmentNo = NS204_temps_daily_filtered$SegmentNo,
-                                           PPC = MCMCsummary(Daily_Max_StreamTemp_Logistic_Full, HPD = T, params = "PPC"))
-
-Daily_Max_Logistic_PPCs <- Daily_Max_Logistic_PPC_data %>% 
-  group_by(SegmentNo) %>% 
-  dplyr::summarise(PPC_mean = mean(PPC.mean),
-                   PPC_sd = sd(PPC.mean))
-
-Daily_Max_Logistic_PPC_summ.table <- as.data.frame(apply(Daily_Max_Logistic_PPCs[,2:3],2,summary))
+# ## Posterior predictive check
+# Daily_Max_Logistic_PPC_data <- data.frame(SegmentNo = NS204_temps_daily_filtered$SegmentNo,
+#                                            PPC = MCMCsummary(Daily_Max_StreamTemp_Logistic_Full, HPD = T, params = "PPC"))
+# 
+# Daily_Max_Logistic_PPCs <- Daily_Max_Logistic_PPC_data %>% 
+#   group_by(SegmentNo) %>% 
+#   dplyr::summarise(PPC_mean = mean(PPC.mean),
+#                    PPC_sd = sd(PPC.mean))
+# 
+# Daily_Max_Logistic_PPC_summ.table <- as.data.frame(apply(Daily_Max_Logistic_PPCs[,2:3],2,summary))
 
 ## Weekly Max Temperatures ##
 # Create a dataframe of the min and max water temps at each site
@@ -639,10 +685,10 @@ model{
   for (i in 1:nCOMIDs){
 
     # epsilon_i - estimated minimum stream temp at segment i 
-    epsilon[i] ~ dnorm(min_waterTemps[i], 1/0.001) # uses a normal distribution informed by the measured minimum temperature
+    epsilon[i] ~ dnorm(min_waterTemps[i], 1/0.01) # uses a normal distribution informed by the measured minimum temperature
     
     # zeta_i - estimated maximum stream temp at segment i
-    zeta[i] ~ dnorm(max_waterTemps[i], 1/0.001)
+    zeta[i] ~ dnorm(max_waterTemps[i], 1/0.01)
     
     # mu.phi_i - mean parameter for phi_i
     mu.phi[i] <- theta[1] + theta[2] * NS204_PCA_scores[i,2] + theta[3] * NS204_PCA_scores[i,3] + theta[4] * NS204_PCA_scores[i,4] + theta[5] * NS204_PCA_scores[i,5] + theta[6] * NS204_PCA_scores[i,6]
@@ -671,7 +717,8 @@ model{
   ## Derived Quantities
   # Relation to calculate phi from beta (slope), zeta, and epsilon
   for (i in 1:nCOMIDs){
-    beta[i] <- (phi[i]*(zeta[i] - epsilon[i]))/4
+    #beta[i] <- (phi[i]*(zeta[i] - epsilon[i]))/4
+    beta[i] <- (phi[i]*4)/(zeta[i] - epsilon[i])
   }
   
   # Posterior predictive checks
@@ -684,6 +731,17 @@ model{
     SE[n] <- ((WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])^2)
   }
   RMSE <- sqrt(sum(SE)/nObs.weekly)
+  
+  # Calculate Bayesian R^2
+  for (n in 1:nObs.weekly){
+    resid[n] <- (WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])
+    x.resid[n] <- (resid[n] - mean(resid))^2
+    x.pred[n] <- (WaterTemp_Max_Pred[n] - mean(WaterTemp_Max_Pred))^2
+  }
+  
+  var.resid <- sum(x.resid)/(nObs.weekly - 1)
+  var.pred <- sum(x.pred)/(nObs.weekly - 1)
+  R2 <- var.pred/(var.pred + var.resid)
 }
 ", fill = TRUE)
 sink()
@@ -699,7 +757,7 @@ jags_data <- list(nCOMIDs = nCOMIDs,
                   SegmentNo = NS204_temps_weekly_filtered$SegmentNo)
 
 # Set parameters to save
-jags_params <- c("theta", "epsilon", "zeta", "mu.phi", "sd.phi", "s2.phi", "phi", "beta", "kappa", "sd", "PPC", "RMSE")
+jags_params <- c("theta", "epsilon", "zeta", "mu.phi", "sd.phi", "s2.phi", "phi", "beta", "kappa", "sd", "PPC", "RMSE", "R2")
 
 # MCMC settings
 ni <- 5000
@@ -723,7 +781,7 @@ Weekly_Max_StreamTemp_Logistic_Full <- jagsUI::jags(data = jags_data,
 Weekly_Max_StreamTemp_Logistic_Full_Params <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, HPD = T,
                                                           excl = c("PPC"))
 # Get DIC
-DIC(Weekly_Max_StreamTemp_Logistic_Full)
+Weekly_Logistic_DIC.val <- DIC(Weekly_Max_StreamTemp_Logistic_Full)
 
 #MCMCtrace(Weekly_Max_StreamTemp_Logistic_Full, params = "zeta", pdf = F)
 
@@ -836,6 +894,17 @@ model{
     SE[n] <- ((WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])^2)
   }
   RMSE <- sqrt(sum(SE)/nObs.weekly)
+  
+  # Calculate Bayesian R^2
+  for (n in 1:nObs.weekly){
+    resid[n] <- (WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])
+    x.resid[n] <- (resid[n] - mean(resid))^2
+    x.pred[n] <- (WaterTemp_Max_Pred[n] - mean(WaterTemp_Max_Pred))^2
+  }
+  
+  var.resid <- sum(x.resid)/(nObs.weekly - 1)
+  var.pred <- sum(x.pred)/(nObs.weekly - 1)
+  R2 <- var.pred/(var.pred + var.resid)
 }
 ", fill = TRUE)
 sink()
@@ -848,7 +917,7 @@ jags_data <- list(nCOMIDs = nCOMIDs,
                   SegmentNo = NS204_temps_weekly_filtered_LM$SegmentNo)
 
 # Set parameters to save
-jags_params <- c("beta", "mu.beta", "sd.beta", "tau.beta", "s2.beta", "theta", "tau", "sd", "RMSE", "PPC")
+jags_params <- c("beta", "mu.beta", "sd.beta", "tau.beta", "s2.beta", "theta", "tau", "sd", "RMSE", "R2", "PPC")
 
 # MCMC settings
 ni <- 4000
@@ -940,6 +1009,17 @@ model{
     SE[n] <- ((WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])^2)
   }
   RMSE <- sqrt(sum(SE)/nObs.weekly)
+  
+  # Calculate Bayesian R^2
+  for (n in 1:nObs.weekly){
+    resid[n] <- (WaterTemp_Max_Obs[n] - WaterTemp_Max_New[n])
+    x.resid[n] <- (resid[n] - mean(resid))^2
+    x.pred[n] <- (WaterTemp_Max_Pred[n] - mean(WaterTemp_Max_Pred))^2
+  }
+  
+  var.resid <- sum(x.resid)/(nObs.weekly - 1)
+  var.pred <- sum(x.pred)/(nObs.weekly - 1)
+  R2 <- var.pred/(var.pred + var.resid)
 }
 ", fill = TRUE)
 sink()
@@ -955,7 +1035,7 @@ jags_data <- list(nCOMIDs = nCOMIDs,
                   SegmentNo = NS204_temps_weekly_filtered$SegmentNo)
 
 # Set parameters to save
-jags_params <- c("epsilon", "zeta", "mu.phi", "sd.phi", "s2.phi", "phi", "beta", "kappa", "sd", "PPC", "RMSE")
+jags_params <- c("epsilon", "zeta", "mu.phi", "sd.phi", "s2.phi", "phi", "beta", "kappa", "sd", "PPC", "RMSE", "R2")
 
 # MCMC settings
 ni <- 5000
@@ -1013,6 +1093,15 @@ NS204_Sites_map.plot <- ggplot() +
   labs(x = "Long",
        y = "Lat") +
   theme_classic()
+
+################################
+# Model fits
+# RMSE
+model_RMSEs.table <- data.frame(Model = c("Daily_LM", "Weekly_LM", "Daily_Logistic", "Weekly_Logistic")) %>%
+  cbind(rbind(MCMCsummary(Daily_Max_StreamTemp_LM_Full, HPD = T, params = "RMSE"),
+              MCMCsummary(Weekly_Max_StreamTemp_LM_Full, HPD = T, params = "RMSE"),
+              MCMCsummary(Daily_Max_StreamTemp_Logistic_Full, HPD = T, params = "RMSE"),
+              MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, HPD = T, params = "RMSE")))
 
 ################################
 # is there spatial structure in thermal sensitivity?
@@ -1097,6 +1186,11 @@ cor(daily_linear_slopes.table$mean, daily_nonlinear_slopes.table$mean, method = 
 # Weekly
 cor(weekly_linear_slopes.table$mean, weekly_nonlinear_slopes.table$mean, method = "pearson")
 
+# Intercepts from weekly linear model
+weekly_linear_intercepts.table <- Weekly_Max_StreamTemp_LM_Full_params %>% 
+  rownames_to_column(., "param") %>% 
+  filter(str_detect(param, "^alpha"))  
+
 #################################
 # visualize nonlinear betas (slopes) from weekly model on a map
 weekly_nonlinear_slopes.table <- weekly_nonlinear_slopes.table %>% 
@@ -1140,13 +1234,13 @@ betas_map.plot <- ggplot() +
 ##################
 # Make predictions of beta (air-water temp slope) at unsampled sites based on covars
 # use all sites of BKT habitat as defined by EBTJV
-
+save.image()
 # Filter pca data to just the trout sites
 Trout_site_PCA_scores <- pca_scores %>% 
   filter(COMID %in% BKT_Habitat_StreamSegment_covars2$COMID) %>% 
   arrange(COMID)
 
-## Predictions with nonlinear model
+## Predictions with posterior samples of nonlinear model
 # Save parameters from weekly nonlinear temperature model
 nonlinear_temp_model_params <- MCMCpstr(Weekly_Max_StreamTemp_Logistic_Full,
          params = c("theta", "sd.phi", "zeta", "epsilon"),
@@ -1195,10 +1289,10 @@ trout_site_nonlinear_betas %>%
   view()
 
 # what variables are betas correlated with?
-snonlinear_beta_corrs <- data.frame(corr = cor(trout_site_nonlinear_betas[,c(1,3:178)], method = "spearman", use = "pairwise.complete.obs")[1,]) %>% 
+nonlinear_beta_corrs <- data.frame(corr = cor(trout_site_nonlinear_betas[,c(2:178)], method = "spearman", use = "pairwise.complete.obs")[1,]) %>% 
   rownames_to_column("param") %>% 
   arrange(-abs(corr)) %>% 
-  .[-(1:3),]
+  .[-1,]
 
 # and make a map
 ggplot() +
@@ -1222,6 +1316,87 @@ ggplot() +
   theme_classic()
 
 fwrite(trout_site_betas, "C:/Users/georgepv/OneDrive - Colostate/Lab PC Backup/Desktop/trout_site_betas.csv")
+
+## Predictions with point estimates of nonlinear model
+
+# Filter pca data to just the trout sites
+
+# Synch_sites <- fread("C:/Users/georgepv/OneDrive - Colostate/SE Eco-Hydrology Project/Data/Trout/Trout Data Working/Compiled Trout Data (All sources)/SE_Site_Final.csv")
+# 
+# Trout_site_PCA_scores <- pca_scores %>% 
+#   filter(COMID %in% Synch_sites$COMID) %>% 
+#   arrange(COMID)
+
+# Save parameters from weekly nonlinear temperature model
+# nonlinear_thetas <- Weekly_Max_StreamTemp_Logistic_Full_Params %>% 
+#   .[1:6,1]
+
+nonlinear_thetas <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, params = "theta")[,"mean"]
+
+#nonlinear_thetas <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, func = "median", params = "theta")[,"func"]
+
+#nonlinear_sd.phi <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, params = "sd.phi")[,"mean"]
+
+#nonlinear_sd.phi <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full,  func = "median",params = "sd.phi")[,"func"]
+
+# Calculate median values for epsilon and zeta
+# Since they represent the min and max water temperatures and we don't have these for unsampled sites, we'll have to make do with estimates from where we do have measurements
+# It's probably not too far off, since the measured temperatures come from representative watersheds within the same region
+med_epsilon <- median(MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, func = "median", params = "epsilon")[,"func"])
+med_zeta <- median(MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, func = "median", params = "zeta")[,"func"])
+
+trout_site_nonlinear_point_betas <- data.frame(COMID = Trout_site_PCA_scores$COMID,
+                                               Beta = NA)
+
+for (i in 1:nrow(trout_site_nonlinear_point_betas)) {
+  # calculate mu.phi at the current site
+  phi.i <- nonlinear_thetas[1] + nonlinear_thetas[2] * Trout_site_PCA_scores[i,2] + nonlinear_thetas[3] * Trout_site_PCA_scores[i,3] + nonlinear_thetas[4] * Trout_site_PCA_scores[i,4] + nonlinear_thetas[5] * Trout_site_PCA_scores[i,5] + nonlinear_thetas[6] * Trout_site_PCA_scores[i,6]
+  
+  # calculate phi
+  #phi.i <- rnorm(1, mean = as.numeric(mu.phi.i), sd = nonlinear_sd.phi)
+  
+  # and beta from phi. Save.
+  trout_site_nonlinear_point_betas[i,"Beta"] <- (phi.i*(med_zeta - med_epsilon))/4
+}
+
+# join segment data to slope estimates
+trout_site_nonlinear_point_betas <- trout_site_nonlinear_point_betas %>% 
+  left_join(BKT_Habitat_StreamSegment_covars2)
+
+# what variables are betas correlated with?
+nonlinear_point_beta_corrs <- data.frame(corr = cor(trout_site_nonlinear_point_betas[,c(2:178)], method = "spearman", use = "pairwise.complete.obs")[1,]) %>% 
+  rownames_to_column("param") %>% 
+  arrange(-abs(corr)) %>% 
+  .[-1,]
+
+# are predicted slopes at all correlated with observed slopes?
+trout_site_nonlinear_point_betas %>% 
+  filter(COMID %in% NS204_temps_weekly_filtered$COMID) %>% 
+  left_join(weekly_nonlinear_slopes.table) %>% 
+  .[,c("Beta", "mean")] %>% 
+  view()
+  cor(., method = "spearman", use = "pairwise.complete.obs")
+  
+# and make a map
+ggplot() +
+  geom_polygon(data = US_states, 
+               aes(x = long, y = lat, group = group),
+               color = "black", fill = NA) +
+  geom_point(data = trout_site_nonlinear_point_betas, 
+             aes(x = Long, 
+                 y = Lat, 
+                 color = Beta)) +
+  coord_map("bonne",
+            lat0 = 40,
+            xlim = c(-84.2, -75.5),
+            ylim = c(34.5, 40.5)) +
+  labs(x = "Long",
+       y = "Lat",
+       title = "Predicted Slopes using Posterior Median Parameter Estimates",
+       color = expression(beta)) +
+  scale_color_viridis_c() +
+  #scale_color_viridis_c(limits=c(min(slopes$beta),max(slopes$beta))) +
+  theme_classic()
 
 ## Predictions with linear model
 
@@ -1281,6 +1456,59 @@ ggplot() +
   scale_color_viridis_c() +
   #scale_color_viridis_c(limits=c(min(slopes$beta),max(slopes$beta))) +
   theme_classic()
+
+## Predictions with point estimates of linear model
+
+# Save parameters from weekly linear temperature model
+linear_thetas <- MCMCsummary(Weekly_Max_StreamTemp_LM_Full, params = "theta")[,"mean"]
+
+#linear_thetas <- MCMCsummary(Weekly_Max_StreamTemp_LM_Full, func = "median", params = "theta")[,"func"]
+
+linear_sd.beta <- MCMCsummary(Weekly_Max_StreamTemp_LM_Full, params = "sd.beta")[,"mean"]
+
+#linear_sd.beta <- MCMCsummary(Weekly_Max_StreamTemp_LM_Full, func = "median", params = "sd.beta")[,"func"]
+
+trout_site_linear_point_betas <- data.frame(COMID = Trout_site_PCA_scores$COMID,
+                                               Beta = NA)
+
+for (i in 1:nrow(trout_site_linear_point_betas)) {
+  # calculate slope at the current site
+  trout_site_linear_point_betas[i,2] <- linear_thetas[1] + linear_thetas[2] * Trout_site_PCA_scores[i,2] + linear_thetas[3] * Trout_site_PCA_scores[i,3] + linear_thetas[4] * Trout_site_PCA_scores[i,4] + linear_thetas[5] * Trout_site_PCA_scores[i,5] + linear_thetas[6] * Trout_site_PCA_scores[i,6]
+  
+  # save slope
+  #trout_site_linear_point_betas[i,2] <- rnorm(1, mean = as.numeric(mu.beta.i), sd = linear_sd.beta)
+}
+
+# join segment data to slope estimates
+trout_site_linear_point_betas <- trout_site_linear_point_betas %>% 
+  left_join(BKT_Habitat_StreamSegment_covars2)
+
+# what variables are betas correlated with?
+linear_point_beta_corrs <- data.frame(corr = cor(trout_site_linear_point_betas[,c(2:178)], method = "spearman", use = "pairwise.complete.obs")[1,]) %>% 
+  rownames_to_column("param") %>% 
+  arrange(-abs(corr)) %>% 
+  .[-1,]
+
+# and make a map
+ggplot() +
+  geom_polygon(data = US_states, 
+               aes(x = long, y = lat, group = group),
+               color = "black", fill = NA) +
+  geom_point(data = trout_site_linear_point_betas, 
+             aes(x = Long, 
+                 y = Lat, 
+                 color = Beta)) +
+  coord_map("bonne",
+            lat0 = 40,
+            xlim = c(-84.2, -75.5),
+            ylim = c(34.5, 40.5)) +
+  labs(x = "Long",
+       y = "Lat",
+       title = "Predicted Slopes (linear) using Posterior Mean Parameter Estimates",
+       color = expression(beta)) +
+  scale_color_viridis_c() +
+  #scale_color_viridis_c(limits=c(min(slopes$beta),max(slopes$beta))) +
+  theme_classic()
 ########################################################
 # Export plots to the results folder
 
@@ -1289,5 +1517,7 @@ run_dir <- here::here("Results", "v1.0")
 
 plots <- ls()[str_detect(ls(), ".plot")]
 tables <- ls()[str_detect(ls(), ".table")]
+values <- ls()[str_detect(ls(), ".val")]
 save(file = file.path(run_dir, "plots.RData"), list = plots)
 save(file = file.path(run_dir, "tables.RData"), list = tables)
+save(file = file.path(run_dir, "values.RData"), list = values)
