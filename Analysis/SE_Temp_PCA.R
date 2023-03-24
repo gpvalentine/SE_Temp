@@ -204,9 +204,6 @@ NS204_PCA_scores <- pca_scores %>%
   filter(COMID %in% NS204_temps_daily_filtered$COMID) %>% 
   arrange(COMID)
 
-x <- NS204_PCA_scores %>% 
-  left_join(BKT_Habitat_StreamSegment_covars2)
-
 ggplot() +
 geom_polygon(data = US_states, 
              aes(x = long, y = lat, group = group),
@@ -531,6 +528,10 @@ min_max_waterTemps <- NS204_temps_daily_filtered %>%
   dplyr::summarize(min_waterTemp = min(WaterTemp_c_MAX, na.rm = T),
             max_waterTemp = max(WaterTemp_c_MAX, na.rm = T))
 
+min_max_waterTemps <- c(median(min_max_waterTemps$min_waterTemp),
+                        median(min_max_waterTemps$max_waterTemp))
+  
+
 # Write model
 sink("Analysis/JAGS_Files/SE_Temp_Daily_Max_StreamTemp_Logistic_Full.jags")
 cat("
@@ -547,15 +548,21 @@ model{
   sd.phi ~ dunif(0, 10)
   tau.phi <- 1/(sd.phi^2)
   s2.phi <- sd.phi^2
+  
+  # epsilon_i - estimated median minimum stream temp 
+  epsilon ~ dnorm(min_waterTemp, 1/0.01) # uses a normal distribution informed by the measured minimum temperature
+  
+  # zeta_i - estimated median maximum stream temp
+  zeta ~ dnorm(max_waterTemp, 1/0.01)
 
   for (i in 1:nCOMIDs){
-
+  
     # epsilon_i - estimated minimum stream temp at segment i 
-    epsilon[i] ~ dnorm(min_waterTemps[i], 1/0.001) # uses a normal distribution informed by the measured minimum temperature
+    #epsilon[i] ~ dnorm(min_waterTemps[i], 1/0.01) # uses a normal distribution informed by the measured minimum temperature
     
     # zeta_i - estimated maximum stream temp at segment i
-    zeta[i] ~ dnorm(max_waterTemps[i], 1/0.001)
-    
+    #zeta[i] ~ dnorm(max_waterTemps[i], 1/0.01)
+  
     # mu.phi_i - mean parameter for phi_i
     mu.phi[i] <- theta[1] + theta[2] * NS204_PCA_scores[i,2] + theta[3] * NS204_PCA_scores[i,3] + theta[4] * NS204_PCA_scores[i,4] + theta[5] * NS204_PCA_scores[i,5] + theta[6] * NS204_PCA_scores[i,6]
 
@@ -573,7 +580,7 @@ model{
   
   ## Process
   for (n in 1:nObs.daily){
-    WaterTemp_Max_Pred[n] <- epsilon[SegmentNo[n]] + ((zeta[SegmentNo[n]] - epsilon[SegmentNo[n]])/(1 + exp(phi[SegmentNo[n]] * (kappa[SegmentNo[n]] - AirTemp_Max_Obs[n]))))
+    WaterTemp_Max_Pred[n] <- epsilon + ((zeta - epsilon)/(1 + exp(phi[SegmentNo[n]] * (kappa[SegmentNo[n]] - AirTemp_Max_Obs[n]))))
     WaterTemp_Max_Obs[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
     
     # New data for PPCs
@@ -583,7 +590,7 @@ model{
   ## Derived Quantities
   # Relation to calculate phi from beta (slope), zeta, and epsilon
   for (i in 1:nCOMIDs){
-    beta[i] <- (phi[i]*(zeta[i] - epsilon[i]))/4
+    beta[i] <- (phi[i]*(zeta - epsilon))/4
   }
   
   # Posterior predictive checks
@@ -615,8 +622,10 @@ sink()
 jags_data <- list(nCOMIDs = nCOMIDs,
                   nObs.daily = nObs.daily,
                   NS204_PCA_scores = NS204_PCA_scores,
-                  min_waterTemps = min_max_waterTemps$min_waterTemp,
-                  max_waterTemps = min_max_waterTemps$max_waterTemp,
+                  min_waterTemp = min_max_waterTemps[1],
+                  max_waterTemp = min_max_waterTemps[2],
+                  #min_waterTemps = min_max_waterTemps$min_waterTemp,
+                  #max_waterTemps = min_max_waterTemps$max_waterTemp,                  
                   AirTemp_Max_Obs = NS204_temps_daily_filtered$AirTemp_c_MAX,
                   WaterTemp_Max_Obs = NS204_temps_daily_filtered$WaterTemp_c_MAX,
                   SegmentNo = NS204_temps_daily_filtered$SegmentNo)
@@ -663,7 +672,44 @@ Daily_Logistic_DIC.val <- DIC(Daily_Max_StreamTemp_Logistic_Full)
 min_max_waterTemps <- NS204_temps_weekly_filtered %>% 
   group_by(SegmentNo) %>% 
   dplyr::summarize(min_waterTemp = min(WaterTemp_c_MAX, na.rm = T),
-            max_waterTemp = max(WaterTemp_c_MAX, na.rm = T))
+            max_waterTemp = max(WaterTemp_c_MAX, na.rm = T),
+            COMID = first(COMID)) %>% 
+  left_join(NS204_Sites)
+
+# plot min and max temps in space
+# US_states <- map_data("state")
+# 
+# ggplot() +
+#   geom_polygon(data = US_states, 
+#                aes(x = long, y = lat, group = group),
+#                color = "black", fill = NA) +
+#   geom_point(data = min_max_waterTemps, 
+#              aes(x = Long, y = Lat, color = min_waterTemp)) +
+#   coord_map("bonne",
+#             lat0 = 40,
+#             xlim = c(-84.2, -75.5),
+#             ylim = c(34.5, 40.5)) +
+#   labs(x = "Long",
+#        y = "Lat") +
+#   theme_classic()
+# 
+# ggplot() +
+#   geom_polygon(data = US_states, 
+#                aes(x = long, y = lat, group = group),
+#                color = "black", fill = NA) +
+#   geom_point(data = min_max_waterTemps, 
+#              aes(x = Long, y = Lat, color = max_waterTemp)) +
+#   coord_map("bonne",
+#             lat0 = 40,
+#             xlim = c(-84.2, -75.5),
+#             ylim = c(34.5, 40.5)) +
+#   labs(x = "Long",
+#        y = "Lat") +
+#   theme_classic()
+
+min_max_waterTemps <- c(median(min_max_waterTemps$min_waterTemp),
+                        median(min_max_waterTemps$max_waterTemp))
+
 
 # Write model
 sink("Analysis/JAGS_Files/SE_Temp_Weekly_Max_StreamTemp_Logistic_Full.jags")
@@ -681,14 +727,20 @@ model{
   sd.phi ~ dunif(0, 10)
   tau.phi <- 1/(sd.phi^2)
   s2.phi <- sd.phi^2
+  
+  # epsilon_i - estimated median minimum stream temp 
+  epsilon ~ dnorm(min_waterTemp, 1/0.01) # uses a normal distribution informed by the measured minimum temperature
+  
+  # zeta_i - estimated median maximum stream temp
+  zeta ~ dnorm(max_waterTemp, 1/0.01)
 
   for (i in 1:nCOMIDs){
 
     # epsilon_i - estimated minimum stream temp at segment i 
-    epsilon[i] ~ dnorm(min_waterTemps[i], 1/0.01) # uses a normal distribution informed by the measured minimum temperature
+    #epsilon[i] ~ dnorm(min_waterTemps[i], 1/0.01) # uses a normal distribution informed by the measured minimum temperature
     
     # zeta_i - estimated maximum stream temp at segment i
-    zeta[i] ~ dnorm(max_waterTemps[i], 1/0.01)
+    #zeta[i] ~ dnorm(max_waterTemps[i], 1/0.01)
     
     # mu.phi_i - mean parameter for phi_i
     mu.phi[i] <- theta[1] + theta[2] * NS204_PCA_scores[i,2] + theta[3] * NS204_PCA_scores[i,3] + theta[4] * NS204_PCA_scores[i,4] + theta[5] * NS204_PCA_scores[i,5] + theta[6] * NS204_PCA_scores[i,6]
@@ -707,7 +759,7 @@ model{
   
   ## Process
   for (n in 1:nObs.weekly){
-    WaterTemp_Max_Pred[n] <- epsilon[SegmentNo[n]] + ((zeta[SegmentNo[n]] - epsilon[SegmentNo[n]])/(1 + exp(phi[SegmentNo[n]] * (kappa[SegmentNo[n]] - AirTemp_Max_Obs[n]))))
+    WaterTemp_Max_Pred[n] <- epsilon + ((zeta - epsilon)/(1 + exp(phi[SegmentNo[n]] * (kappa[SegmentNo[n]] - AirTemp_Max_Obs[n]))))
     WaterTemp_Max_Obs[n] ~ dnorm(WaterTemp_Max_Pred[n], tau)
     
     # New data for PPCs
@@ -717,8 +769,7 @@ model{
   ## Derived Quantities
   # Relation to calculate phi from beta (slope), zeta, and epsilon
   for (i in 1:nCOMIDs){
-    #beta[i] <- (phi[i]*(zeta[i] - epsilon[i]))/4
-    beta[i] <- (phi[i]*4)/(zeta[i] - epsilon[i])
+    beta[i] <- (phi[i]*(zeta - epsilon))/4
   }
   
   # Posterior predictive checks
@@ -750,8 +801,10 @@ sink()
 jags_data <- list(nCOMIDs = nCOMIDs,
                   nObs.weekly = nObs.weekly,
                   NS204_PCA_scores = NS204_PCA_scores,
-                  min_waterTemps = min_max_waterTemps$min_waterTemp,
-                  max_waterTemps = min_max_waterTemps$max_waterTemp,
+                  min_waterTemp = min_max_waterTemps[1],
+                  max_waterTemp = min_max_waterTemps[2],
+                  #min_waterTemps = min_max_waterTemps$min_waterTemp,
+                  #max_waterTemps = min_max_waterTemps$max_waterTemp,
                   AirTemp_Max_Obs = NS204_temps_weekly_filtered$AirTemp_c_MAX,
                   WaterTemp_Max_Obs = NS204_temps_weekly_filtered$WaterTemp_c_MAX,
                   SegmentNo = NS204_temps_weekly_filtered$SegmentNo)
@@ -1094,6 +1147,20 @@ NS204_Sites_map.plot <- ggplot() +
        y = "Lat") +
   theme_classic()
 
+# for presentations
+# ggplot() +
+#   geom_polygon(data = US_states,
+#                aes(x = long, y = lat, group = group),
+#                color = "black", fill = NA) +
+# geom_point(data = NS204_Sites, 
+#            aes(x = Long, y = Lat),
+#            color = "black") +
+#   coord_map("albers",
+#             parameters = c(29.5, 45.5),
+#             xlim = c(-83.75, -71),
+#             ylim = c(33, 41.7)) +
+#   theme_void()
+
 ################################
 # Model fits
 # RMSE
@@ -1194,8 +1261,7 @@ weekly_linear_intercepts.table <- Weekly_Max_StreamTemp_LM_Full_params %>%
 #################################
 # visualize nonlinear betas (slopes) from weekly model on a map
 weekly_nonlinear_slopes.table <- weekly_nonlinear_slopes.table %>% 
-  cbind(NS204_Sites) %>% # bind in COMIDs
-  select(mean, `95%_HPDL`, `95%_HPDU`, COMID, Lat, Long)
+  cbind(COMID = NS204_PCA_scores[,1]) # bind in COMIDs
 
 # Join in (uncentered) landscape covariates
 weekly_nonlinear_slopes.table <- weekly_nonlinear_slopes.table %>% 
@@ -1345,18 +1411,21 @@ nonlinear_thetas <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, params = "t
 med_epsilon <- median(MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, func = "median", params = "epsilon")[,"func"])
 med_zeta <- median(MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, func = "median", params = "zeta")[,"func"])
 
+epsilon <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, params = "epsilon")[,"mean"]
+zeta <- MCMCsummary(Weekly_Max_StreamTemp_Logistic_Full, params = "zeta")[,"mean"]
+
 trout_site_nonlinear_point_betas <- data.frame(COMID = Trout_site_PCA_scores$COMID,
                                                Beta = NA)
 
 for (i in 1:nrow(trout_site_nonlinear_point_betas)) {
-  # calculate mu.phi at the current site
+  # calculate phi at the current site
   phi.i <- nonlinear_thetas[1] + nonlinear_thetas[2] * Trout_site_PCA_scores[i,2] + nonlinear_thetas[3] * Trout_site_PCA_scores[i,3] + nonlinear_thetas[4] * Trout_site_PCA_scores[i,4] + nonlinear_thetas[5] * Trout_site_PCA_scores[i,5] + nonlinear_thetas[6] * Trout_site_PCA_scores[i,6]
   
   # calculate phi
   #phi.i <- rnorm(1, mean = as.numeric(mu.phi.i), sd = nonlinear_sd.phi)
   
   # and beta from phi. Save.
-  trout_site_nonlinear_point_betas[i,"Beta"] <- (phi.i*(med_zeta - med_epsilon))/4
+  trout_site_nonlinear_point_betas[i,"Beta"] <- (phi.i*(zeta - epsilon))/4
 }
 
 # join segment data to slope estimates
@@ -1374,7 +1443,7 @@ trout_site_nonlinear_point_betas %>%
   filter(COMID %in% NS204_temps_weekly_filtered$COMID) %>% 
   left_join(weekly_nonlinear_slopes.table) %>% 
   .[,c("Beta", "mean")] %>% 
-  view()
+  #view()
   cor(., method = "spearman", use = "pairwise.complete.obs")
   
 # and make a map
@@ -1392,7 +1461,7 @@ ggplot() +
             ylim = c(34.5, 40.5)) +
   labs(x = "Long",
        y = "Lat",
-       title = "Predicted Slopes using Posterior Median Parameter Estimates",
+       title = "Predicted Slopes using Posterior Mean Parameter Estimates",
        color = expression(beta)) +
   scale_color_viridis_c() +
   #scale_color_viridis_c(limits=c(min(slopes$beta),max(slopes$beta))) +
@@ -1418,10 +1487,10 @@ linear_beta_pstrs <- data.frame(COMID = Trout_site_PCA_scores$COMID) %>%
 for (j in 1:n.samp) {
   for (i in 1:nrow(linear_beta_pstrs)) {
     # calculate slope at the current site
-    mu.beta.i <- linear_model_params$theta[1,j] + linear_model_params$theta[2,j] * Trout_site_PCA_scores[i,2] + linear_model_params$theta[3,j] * Trout_site_PCA_scores[i,3] + linear_model_params$theta[4,j] * Trout_site_PCA_scores[i,4] + linear_model_params$theta[5,j] * Trout_site_PCA_scores[i,5] + linear_model_params$theta[6,j] * Trout_site_PCA_scores[i,6]
+    linear_beta_pstrs[i,j+1] <- linear_model_params$theta[1,j] + linear_model_params$theta[2,j] * Trout_site_PCA_scores[i,2] + linear_model_params$theta[3,j] * Trout_site_PCA_scores[i,3] + linear_model_params$theta[4,j] * Trout_site_PCA_scores[i,4] + linear_model_params$theta[5,j] * Trout_site_PCA_scores[i,5] + linear_model_params$theta[6,j] * Trout_site_PCA_scores[i,6]
     
     # save slope
-    linear_beta_pstrs[i,j+1] <- rnorm(1, mean = as.numeric(mu.beta.i), sd = as.numeric(linear_model_params$sd.beta[j]))
+    #linear_beta_pstrs[i,j+1] <- rnorm(1, mean = as.numeric(mu.beta.i), sd = as.numeric(linear_model_params$sd.beta[j]))
   }
 }
 
