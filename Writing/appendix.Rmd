@@ -12,3 +12,13 @@ logistic_weekly_betas_semivariogram.plot
 
 \newpage
 
+(ref:weekly-logistic-betas-corr-table-cap) Top ten Spearman correlations between maximum slopes of the weekly nonlinear regression and local landscape variables. Correlations were tested for 172 segment, catchment, and watershed characteristics accessed from the USGS NHDplus and EPA StreamCat database. Abbreviations (descriptions from sources):  SLOPE = Stream segment slope based on smoothed elevations, BFIWs = Baseflow index (component of streamflow attributable to groundwater) for stream segment watershed, BFICat = Baseflow index for stream segment catchment, Lat = Stream segment outlet latitude, Long = Stream segment outlet longitude, QC_02 = Estimated flow (February), QE_02 = Gauge adjusted estimated flow (February), WsAreaSqKm = Stream segment watershed area (km$^2$), TotDASqKM = Total upstream cumulative drainage area (km$^2$), = Divergence-routed cumulative drainage area (km$^2$). Further variable definitions are available from the [NHDPlus User Guide](https://pubs.er.usgs.gov/publication/ofr20191096) and [EPA StreamCat](https://www.epa.gov/national-aquatic-resource-surveys/streamcat-metrics-and-definitions) database.
+
+```{r weekly-logistic-betas-corr-table}
+kbl(slope_corrs.table,
+      row.names = F,
+      col.names = c("Landscape Variable", "Correlation"),
+      caption = "(ref:weekly-logistic-betas-corr-table-cap)")
+```
+
+

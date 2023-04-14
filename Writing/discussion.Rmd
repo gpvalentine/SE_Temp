@@ -3,22 +3,30 @@ title: ''
 output: bookdown::pdf_document2
 date: "`r Sys.Date()`"
 ---
-We used observed air and water temperatures at 168 sites throughout the south and central eastern USA to quantify stream thermal sensitivity at multiple temporal scales using multiple models. We relate this thermal sensitivity to hydraulic and landscape characteristics, inferring local drivers that allow prediction at unsampled sites. We find that a) weekly temperatures offered better fit than daily temperatures and the nonlinear model outperformed the linear model, b) thermal sensitivity is best explained by local hydrology such as catchment/watershed velocity ___, and c) __% of preferred thermal habitat in the southeast is currently conserved.
-
-## Model Comparison and Temporal Summaries
-
-Temperature values summarized at weekly intervals outperformed those summarized at daily intervals. This finding is in agreement with those of other researchers [@stefan1993; @kelleher2012; @morrill2005]. By summarizing across a broader temporal interval, the time lag between air and water temperatures can be negated [@stefan1993]. @mohseni1999a, @caissie2001, and @mohseni2003 have all found that the logistic model did not fit well to temperatures grouped at daily intervals. Linear slopes were generally lower/higher than findings from other studies, indicating that water temperatures at trout habitat in the southeast US are more/less buffered than those in other regions.
-
-The relative fits of linear and nonlinear models varies by study (region?). We found that nonlinear regression offered improved fit over linear regression, a finding that is shared by some [@kelleher2012; @mayer2012], but not all research that has compared the two [@beaufort2020; @laanaya2017]. This difference may be due, in part, to the removal of freezing temperatures from the linear regression and that fact that our analysis was performed in a warmer climate than some other studies [notably @kelleher2012]. Geographic
-- Compare linear regression slopes to those found by other researchers in other regions.
+Our work represents one of the most thorough analyses to date of thermal habitat for brook trout. We used observed air and water temperatures at 168 sites throughout the south and central eastern USA to quantify stream thermal sensitivity at multiple temporal scales using multiple models. We relate this thermal sensitivity to hydraulic and landscape characteristics, inferring local drivers that allow prediction at nearly 9,000 unsampled sites spanning 1,000 km. We found that a) weekly temperatures offered better fit than daily temperatures and the nonlinear models outperformed linear models in the southeast US region, b) thermal sensitivity is best explained by local hydrology such as catchment/watershed velocity ___, and c) __% of preferred thermal habitat in the southeast is currently conserved. Our results build on a solid base of investigation into stream thermal sensitivity, incorporating the influence of landscape variables and expanding analysis into new regions of interest. We emphasize the importance of hydrological variables in determining thermal sensitivity. By using widely available data, we can make predictions of thermal habitat for a vulnerable species and work toward landscape-level conservation planning.
 
 ## Landscape Influence
 
+Thermal sensitivity in the maximum slope of the nonlinear weekly regression was most highly influenced by the principal component incorporating local groundwater influence, precipitation, minimum air temperatures, and winter stream velocity. Also significantly influential was the principal component incorporating local sediment and landcover. 
 - @mayer2012 results show that streamflow is an important explanatory variable in predicting water temperature
-- We expected that groundwater influence, as represented by baseflow index, would be an important predictor of thermal sensitivity (see mayer2012 sec. 4.2 for more details)
+- We expected that groundwater influence, as represented by baseflow index, would be an important predictor of thermal sensitivity (see @mayer2012 sec. 4.2 for more details)
+- Drawbacks of interpreting PCs
+
+## Model Comparison
+
+We found that nonlinear regression offered improved fit over linear regression, a result that is shared by some [@kelleher2012; @mayer2012], but not all research that has compared the two [@beaufort2020; @laanaya2017]. These relative fits appear to vary by region, as differences in fits are mainly attributable to the range of air temperatures experienced in the study area.In locations where freezing air temperatures are rare (or removed for analysis), linear regressions often fit best. Where air temperatures below freezing are more common, nonlinear fits may be favored. Despite the fact that our study area was at relatively low latitudes, due to its elevation, it commonly experienced freezing temperatures. Future work should seek to establish how linear and nonlinear regressions of thermal sensitivity compare in regions that lack freezing air temperatures.
+
+Our results continue to establish consensus for improved model fit using temperature measurements aggregated at increasing temporal scales. We found that temperature values summarized at weekly intervals outperformed those summarized at daily intervals. This finding is in agreement with those of other researchers that have compared model fits at multiple temporal scales [@stefan1993; @kelleher2012; @morrill2005]. The supposed reason for this is that by aggregating across a broader temporal interval, the time lag between air and water temperatures can be negated [@stefan1993]. The temperature metrics employed vary by study. @beaufort2020, @kelleher2012, use average temperatures, while @chang2013 use maximum temperatures. We elected to model stream thermal sensitivity using maximum air and water temperatures at daily and weekly intervals. It should be noted that because variance is generally dampened as values are averaged at increasing intervals, modeling average temperature at increasing intervals would by necessity result in improved fit with each increase. By using maximum temperatures, we avoid this bias and employ a measurement that is more biologically relevant to thermally sesnitive taxa such as brook trout. 
+
+Nonetheless,  @mohseni1999a, @caissie2001, and @mohseni2003 have all found that the logistic model did not fit well to temperatures grouped at daily intervals. 
+
+
+
+
+- Despite the fact that nonlinear models can sometimes better explain thermal sensitivity (as in our case), linear fits remain useful because they allow the comparison of slopes with those found by other researchers. Our estimates of slopes for weekly linear regressions are roughly in line with those reported in previous reports [see Table 3 in @beaufort2020]. Linear slopes were generally lower/higher than findings from other studies, indicating that water temperatures at trout habitat in the southeast US are more/less buffered than those in other regions.
 
 ## Gap Analysis
-
+Our gap analysis revealed that...
 
 ## Prediction
 

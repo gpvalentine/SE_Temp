@@ -1,15 +1,16 @@
 ---
 title: "Landscape variables characterize thermal stability in Southeastern US Brook Trout streams"
 author: 
-  - George Valentine, Dept. Fish, Wildlife, & Conservation Biology, Colorado State University, george.valentine@colostate.edu
+  - George P. Valentine, Dept. Fish, Wildlife, & Conservation Biology, Colorado State University, george.valentine@colostate.edu
   - Xinyi Lu, Dept. Fish, Wildlife, & Conservation Biology, Colorado State University
   - C. Andrew Dolloff, U.S. Forest Service Southern Research Station
-  - Mevin Hooten, Dept. Statistics & Data Sciences, University of Texas at Austin
+  - Jacob M. Rash, North Carolina Wildlife Resources Comission
+  - Mevin B. Hooten, Dept. Statistics & Data Sciences, University of Texas at Austin
   - Yoichiro Kanno, Dept. Fish, Wildlife, & Conservation Biology, Colorado State University
 date: "`r Sys.Date()`"
 output:
   bookdown::pdf_document2:
-    toc: TRUE
+    toc: FALSE
     number_sections: TRUE
     keep_tex: true
 geometry: "left = 2.5cm, right = 2cm, top = 2cm, bottom = 2cm"
@@ -22,6 +23,7 @@ header-includes:
   - \usepackage{setspace}\spacing{1.5}
   - \usepackage{bm}
   - \DeclareUnicodeCharacter{0008}{ }
+  - \setlength{\parindent}{4em}
 linkcolor: blue
 bibliography: bibliography.bib
 csl: apa.csl
@@ -40,13 +42,15 @@ library(cowplot)      # For creating gridded plots
 library(gridGraphics) # For including base R plots in gridded plots
 library(formatR)      # For displaying tidy code in output
 library(knitr)        # For making tidy tables
+library(kableExtra)   # For formatting tables
+library(tidyverse)    # For tidy data management
 
 # Save the directory from which to pull results files
 run_dir <- here::here("results", params$run_name)
 
 # Load figures and tables to include
-#load(file = file.path(run_dir, "plots.rdata"))
-#load(file = file.path(run_dir, "tables.rdata"))
+load(file = file.path(run_dir, "plots.rdata"))
+load(file = file.path(run_dir, "tables.rdata"))
 ```
 
 \newpage
@@ -57,35 +61,42 @@ run_dir <- here::here("results", params$run_name)
 \newpage
 \pagenumbering{arabic}
 
+# Introduction
+
 ```{r intro, child = 'introduction.Rmd'}
 ```
 
 \newpage
+
+# Methods
 
 ```{r methods, child = 'methods.Rmd'}
 ```
 
 \newpage
 
+# Results
+
 ```{r results, child = 'results.Rmd'}
 ```
 
 \newpage
+
+# Discussion
 
 ```{r discussion, child = 'discussion.Rmd'}
 ```
 
 \newpage
 
-```{r conclusion, child = 'conclusion.Rmd'}
-```
-
-\newpage
+# References
 
 ```{r biblio, child = 'bibliography.Rmd'}
 ```
 
 \newpage
+
+# Appendix
 
 ```{r appendix, child = 'appendix.Rmd'}
 ```
