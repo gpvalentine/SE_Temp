@@ -6,6 +6,54 @@ output: bookdown::pdf_document2
 \renewcommand{\thefigure}{S\arabic{figure}}
 \setcounter{figure}{0}
 
+## Prior Distributions
+For the logistic temperature model,
+
+$$
+\begin{aligned}
+  \epsilon_i \sim \text{normal}(\text{minWaterTemp}_i, 100), \\
+  \zeta_i \sim \text{normal}(\text{maxWaterTemp}_i, 100), \\
+  \kappa_i \sim \text{normal}(20, 100), \\
+  \sigma \sim \text{uniform}(0, 10), \\
+  \bm{\theta} \sim \text{normal}(0, 100), \\
+  \sigma_\phi \sim \text{uniform}(0, 10), \\
+\end{aligned}
+$$
+
+\noindent where $\text{minWaterTemp}_i$ is the observed minimum water temperature ($^\circ$C) and $\text{maxWaterTemp}_i$ is the observed maximum water temperature ($^\circ$C) at site $i = 1,...,203$.
+
+\newpage
+
+## Linear Temperature Model
+For the linear regression, we removed observations where air temperatures were less than 0$^\circ$C. In the linear model, we fit weekly mean water temperature $T_W$ ($^\circ$ C) at site $i = 1,...,203$ and week $t = 1,...,T$ as a function of weekly mean air temperature $T_A$ ($^\circ$C) with
+
+\begin{equation}
+  \text{T}_{Wi,t} \sim \text{normal}(\alpha_i + \beta_i\text{T}_{Ai,t}, \sigma^2).
+  (\#eq:Observation)
+\end{equation}
+
+$\beta_i$ is derived from the linear function
+
+\begin{equation}
+  \beta_i \sim \text{normal}(\theta_1 + \theta_2\text{PCA}_{1,i} + \theta_3\text{PCA}_{2,i} + \theta_4\text{PCA}_{3,i} + \theta_5\text{PCA}_{4,i} + \theta_6\text{PCA}_{5,i}, \sigma^2_\beta).
+  (\#eq:PCALinear)
+\end{equation}
+
+Priors for the linear model were
+
+\begin{equation}
+  \alpha_i \sim \text{normal}(0, 1000),\\
+  \sigma \sim \text{uniform}(0, 10),\\
+  \bm{\theta} \sim \text{normal}(0, 100),\\
+  \sigma_\beta \sim \text{uniform}(0, 10),\\
+\end{equation}
+
+\noindent for site $i = 1,...,203$.
+
+We implemented and evaluated the nonlinear model using the same methods described for the logistic model. All parameters converged at $\hat{r}$ values of 1.1 or less. The model had an RMSE of `r round(model_fits.table["Weekly_LM", "RMSE"], 2)` and a mean R$^2$ of `r round(model_fits.table["Weekly_LM", "R2"], 2)`. Posterior predictive checks showed little evidence for lack of fit, with mean Bayesian p-values for mean and standard deviation of `r round(Weekly_Mean_LM_PPC_summ.table["Mean", 1], 2)` and `r round(Weekly_Mean_LM_PPC_summ.table["Mean", 2], 2)`. Linear regression slopes varied from `r round(min(weekly_linear_slopes.table$mean), 2)` (95% HPDI: to ) to `r round(max(weekly_linear_slopes.table$mean), 2)` (95% HPDI: to ), with an average slope of `r round(mean(weekly_linear_slopes.table$mean), 2)`.
+
+\newpage
+
 ```{r logistic-weekly-betas-semivariogram-plot, fig.cap="Semivariogram depicting spatial structure in thermal sensitivity at 168 sites. Slopes (model $\beta$s) are posterior means of the nonlinear model of weekly maximum temperatures."}
 logistic_weekly_betas_semivariogram.plot
 ```
@@ -21,4 +69,19 @@ kbl(slope_corrs.table,
       caption = "(ref:weekly-logistic-betas-corr-table-cap)")
 ```
 
+\newpage
+
+(ref:nonlinear-betas-corr-plot-cap) Pearson's correlations between nonlinear and linear model $\bm{\beta}$ and minimum, maximum, and range of weekly mean stream temperatures.
+
+```{r nonlinear-betas-corr-plot, fig.cap="(ref:nonlinear-betas-corr-plot-cap)"}
+corrplot::corrplot(cor(betas_corr.table), method = 'number')
+```
+
+\newpage
+
+(ref:min-max-interpolated-map-plot-cap) Minimum and maximum weekly stream temperatures at 8,660 sites of brook trout habitat. Sites were obtained through EcoSHEDS (www.usgs.gov/apps/ecosheds) and the Eastern Brook Trout Joint Venture [@ebtjv2006]. Stream temperature extremes were spatially interpolated from measured temperatures using latitude, longitude, and elevation.
+
+```{r min-max-interpolated-map-plot, fig.cap="(ref:min-max-interpolated-map-plot-cap)", warning=FALSE}
+min_max_interpolated_map.plot
+```
 
