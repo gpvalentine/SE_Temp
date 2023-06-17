@@ -6,6 +6,36 @@ output: bookdown::pdf_document2
 \renewcommand{\thefigure}{S\arabic{figure}}
 \setcounter{figure}{0}
 
+## Linear Temperature Model
+For the linear regression, we removed observations where air temperatures were less than 0$^\circ$C. In the linear model, we fit weekly mean water temperature $T_W$ ($^\circ$ C) at site $i = 1,...,203$ and week $t = 1,...,T$ as a function of weekly mean air temperature $T_A$ ($^\circ$C) with
+
+\begin{equation}
+  \text{T}_{Wi,t} \sim \text{normal}(\alpha_i + \beta_i\text{T}_{Ai,t}, \sigma^2).
+  (\#eq:Observation)
+\end{equation}
+
+\noindent $\beta_i$ is derived from the linear function
+
+\begin{equation}
+  \beta_i \sim \text{normal}(\theta_1 + \theta_2\text{PCA}_{1,i} + \theta_3\text{PCA}_{2,i} + \theta_4\text{PCA}_{3,i} + \theta_5\text{PCA}_{4,i} + \theta_6\text{PCA}_{5,i}, \sigma^2_\beta).
+  (\#eq:PCALinear)
+\end{equation}
+
+\noindent Priors for the linear model were
+
+\begin{equation}
+  \alpha_i \sim \text{normal}(0, 1000),\\
+  \sigma \sim \text{uniform}(0, 10),\\
+  \bm{\theta} \sim \text{normal}(0, 100),\\
+  \sigma_\beta \sim \text{uniform}(0, 10),\\
+\end{equation}
+
+\noindent for site $i = 1,...,203$.
+
+We implemented and evaluated the linear model using the same methods described for the logistic model. All parameters converged at $\hat{r}$ values of 1.1 or less. The model had an RMSE of `r round(model_fits.table["Weekly_LM", "RMSE"], 2)` and a mean R$^2$ of `r round(model_fits.table["Weekly_LM", "R2"], 2)`. Posterior predictive checks showed little evidence for lack of fit, with mean Bayesian p-values for mean and standard deviation of `r round(Weekly_Mean_LM_PPC_summ.table["Mean", 1], 2)` and `r round(Weekly_Mean_LM_PPC_summ.table["Mean", 2], 2)`. Linear regression slopes varied from `r round(min(weekly_linear_slopes.table$mean), 2)` (95% HPDI: `r round(weekly_linear_slopes.table[which.min(weekly_linear_slopes.table$mean), 4], 2)` to `r round(weekly_linear_slopes.table[which.min(weekly_linear_slopes.table$mean), 5], 2)`) to `r round(max(weekly_linear_slopes.table$mean), 2)` (95% HPDI: `r round(weekly_linear_slopes.table[which.max(weekly_linear_slopes.table$mean), 4], 2)` to `r round(weekly_linear_slopes.table[which.max(weekly_linear_slopes.table$mean), 5], 2)`), with an average slope of `r round(mean(weekly_linear_slopes.table$mean), 2)`.
+
+\newpage
+
 ## Prior Distributions
 For the logistic temperature model,
 
@@ -24,49 +54,15 @@ $$
 
 \newpage
 
-## Linear Temperature Model
-For the linear regression, we removed observations where air temperatures were less than 0$^\circ$C. In the linear model, we fit weekly mean water temperature $T_W$ ($^\circ$ C) at site $i = 1,...,203$ and week $t = 1,...,T$ as a function of weekly mean air temperature $T_A$ ($^\circ$C) with
-
-\begin{equation}
-  \text{T}_{Wi,t} \sim \text{normal}(\alpha_i + \beta_i\text{T}_{Ai,t}, \sigma^2).
-  (\#eq:Observation)
-\end{equation}
-
-$\beta_i$ is derived from the linear function
-
-\begin{equation}
-  \beta_i \sim \text{normal}(\theta_1 + \theta_2\text{PCA}_{1,i} + \theta_3\text{PCA}_{2,i} + \theta_4\text{PCA}_{3,i} + \theta_5\text{PCA}_{4,i} + \theta_6\text{PCA}_{5,i}, \sigma^2_\beta).
-  (\#eq:PCALinear)
-\end{equation}
-
-Priors for the linear model were
-
-\begin{equation}
-  \alpha_i \sim \text{normal}(0, 1000),\\
-  \sigma \sim \text{uniform}(0, 10),\\
-  \bm{\theta} \sim \text{normal}(0, 100),\\
-  \sigma_\beta \sim \text{uniform}(0, 10),\\
-\end{equation}
-
-\noindent for site $i = 1,...,203$.
-
-We implemented and evaluated the nonlinear model using the same methods described for the logistic model. All parameters converged at $\hat{r}$ values of 1.1 or less. The model had an RMSE of `r round(model_fits.table["Weekly_LM", "RMSE"], 2)` and a mean R$^2$ of `r round(model_fits.table["Weekly_LM", "R2"], 2)`. Posterior predictive checks showed little evidence for lack of fit, with mean Bayesian p-values for mean and standard deviation of `r round(Weekly_Mean_LM_PPC_summ.table["Mean", 1], 2)` and `r round(Weekly_Mean_LM_PPC_summ.table["Mean", 2], 2)`. Linear regression slopes varied from `r round(min(weekly_linear_slopes.table$mean), 2)` (95% HPDI: to ) to `r round(max(weekly_linear_slopes.table$mean), 2)` (95% HPDI: to ), with an average slope of `r round(mean(weekly_linear_slopes.table$mean), 2)`.
+## Variable Definitions
+Hydrologic variables sourced from the USGS' NHDplus v2.1 [@USGS2016] follow the form YZ_XX. The first letter of the variable code (Y) represents the type of hydrologic variable, with "Q" representing flow predictions and "V" representing stream velocity predictions. The second letter of the variable code (Z) represents the origin of the hydrologic variable, with "A" representing cumulative runoff, "C" representing reference gauge regression, and "E" representing gauge flow. XX indicates the time period of record, with "MA" representing the mean annual statistic and numbers representing monthly statistics. Landscape variables sourced from the Environmental Protection Agency StreamCat database [@hill2016] are classified at either the watershed ("Ws") or catchment ("Cat") level. Watershed is defined as the entire upstream contributing area to a stream segment, and catchment is defined as the contributing area a each unique stream segment. StreamCat abbreviations are as follows: BFI = baseflow index, precip = precipitation, Tmin = minimum air temperature, Tmean = mean air temperature, Tmax = maximum air temperature, WetIndex = soil wetness index, Perm = mean soil permeability, PctUrbLo2016 = % cover of low-density urban landcover as measured from 2016 LandSat data, PctColluvSed = % cover of colluviated sediment, PctUrbOp2016 = % land cover of developed open space as measured from 2016 LandSat data, PctUrbMid2016 = % cover of mid-density urban landcover as measured from 2016 LandSat data, and PctDecid2016 = % cover of deciduous landcover as measured from 2016 LandSat data. Further variable descriptions may be found in the [NHDPlus User Guide](https://pubs.er.usgs.gov/publication/ofr20191096) and [EPA StreamCat](https://www.epa.gov/national-aquatic-resource-surveys/streamcat-metrics-and-definitions) database metrics and definitions page.
 
 \newpage
 
-```{r logistic-weekly-betas-semivariogram-plot, fig.cap="Semivariogram depicting spatial structure in thermal sensitivity at 168 sites. Slopes (model $\beta$s) are posterior means of the nonlinear model of weekly maximum temperatures."}
+(ref:logistic-weekly-betas-semivariogram-plot-cap) Semivariogram depicting spatial structure in thermal sensitivity at 203 sites. Slopes (model $\beta$s) are posterior means of the nonlinear model of weekly maximum temperatures.
+
+```{r logistic-weekly-betas-semivariogram-plot, fig.cap="(ref:logistic-weekly-betas-semivariogram-plot-cap)"}
 logistic_weekly_betas_semivariogram.plot
-```
-
-\newpage
-
-(ref:weekly-logistic-betas-corr-table-cap) Top ten Spearman correlations between maximum slopes of the weekly nonlinear regression and local landscape variables. Correlations were tested for 172 segment, catchment, and watershed characteristics accessed from the USGS NHDplus and EPA StreamCat database. Abbreviations (descriptions from sources):  SLOPE = Stream segment slope based on smoothed elevations, BFIWs = Baseflow index (component of streamflow attributable to groundwater) for stream segment watershed, BFICat = Baseflow index for stream segment catchment, Lat = Stream segment outlet latitude, Long = Stream segment outlet longitude, QC_02 = Estimated flow (February), QE_02 = Gauge adjusted estimated flow (February), WsAreaSqKm = Stream segment watershed area (km$^2$), TotDASqKM = Total upstream cumulative drainage area (km$^2$), = Divergence-routed cumulative drainage area (km$^2$). Further variable definitions are available from the [NHDPlus User Guide](https://pubs.er.usgs.gov/publication/ofr20191096) and [EPA StreamCat](https://www.epa.gov/national-aquatic-resource-surveys/streamcat-metrics-and-definitions) database.
-
-```{r weekly-logistic-betas-corr-table}
-kbl(slope_corrs.table,
-      row.names = F,
-      col.names = c("Landscape Variable", "Correlation"),
-      caption = "(ref:weekly-logistic-betas-corr-table-cap)")
 ```
 
 \newpage
@@ -79,9 +75,13 @@ corrplot::corrplot(cor(betas_corr.table), method = 'number')
 
 \newpage
 
-(ref:min-max-interpolated-map-plot-cap) Minimum and maximum weekly stream temperatures at 8,660 sites of brook trout habitat. Sites were obtained through EcoSHEDS (www.usgs.gov/apps/ecosheds) and the Eastern Brook Trout Joint Venture [@ebtjv2006]. Stream temperature extremes were spatially interpolated from measured temperatures using latitude, longitude, and elevation.
+(ref:min-max-interpolated-map-plot-cap) a) Minimum and b) maximum weekly stream temperatures at 8,695 sites of brook trout habitat. Sites were obtained through EcoSHEDS (www.usgs.gov/apps/ecosheds) and the Eastern Brook Trout Joint Venture [@ebtjv2006].  Minimum and maximum stream temperatures were spatially interpolated from measured temperatures using latitude, longitude, and elevation.
 
-```{r min-max-interpolated-map-plot, fig.cap="(ref:min-max-interpolated-map-plot-cap)", warning=FALSE}
-min_max_interpolated_map.plot
+```{r min-max-interpolated-map-plot, fig.cap="(ref:min-max-interpolated-map-plot-cap)", warning=FALSE, out.width="100%"}
+plot_grid(min_interpolated_map.plot,
+          max_interpolated_map.plot,
+          labels = c("a)", "b)"),
+          label_size = 11,
+          nrow = 2)
 ```
 

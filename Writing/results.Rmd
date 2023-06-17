@@ -2,29 +2,12 @@
 title: ''
 output: bookdown::pdf_document2
 ---
-## Principal Components Analysis
-The first principal component was dominated by estimates of monthly and annual stream flow (Table \@ref(tab:PCs-table)). The second principal component was made up of metrics of spring and summer stream velocity. The third principal component included winter stream velocity and elevation, but also incorporated estimated temperature maximums within the catchment. The fourth principal component included groundwater (baseflow and water table depth), precipitation estimates, and minimum temperatures. The fifth and final principal component was dominated by measures of soil moisture, urban and deciduous landcover, and local colluviated (unconsolidated) sediment. The first five principal components explained `r round(pca_summary.table["Cumulative R2", "PC5"], 3) * 100`% of the variance in predictors (Table \@ref(tab:PCs-table)).
 
-(ref:PCs-table-cap) Top five principal components (PCs) by variance explained (R$^2$). The top ten contributing variables for each principal component are included. "Q" variables refer to stream flow metrics during specified periods of the year (numbers = months and MA = mean annual), and "V" variables refer to stream velocity. Further variable definitions are available from the [NHDPlus User Guide](https://pubs.er.usgs.gov/publication/ofr20191096) and [EPA StreamCat](https://www.epa.gov/national-aquatic-resource-surveys/streamcat-metrics-and-definitions) database.
+There was considerable of thermal variability between sites. Average weekly air temperature across sites was 10.99$^\circ$ C (SD: 7.74$^\circ$ C), and ranged from -15.03$^\circ$ C to 28.07$^\circ$ C. Average weekly water temperature across sites was 11.41$^\circ$ C (SD: 5.75$^\circ$ C), and ranged from 0$^\circ$ C to 27.83$^\circ$ C. Some sites had thermally resistant water temperatures, but others were quite sensitive (Fig. \@ref(fig:logistic-fits-plot)). Air and water temperatures generally were coolest in late January and early February, and peaked in mid-July. Minimum stream temperatures generally followed a latitudinal gradient, with the coolest minimums located in northern areas (Fig. \@ref(fig:min-max-interpolated-map-plot)), however maximum temperatures did not. Some of the coolest maximum stream temperatures were measured at sites at lower latitudes, but located at higher elevations.
 
-```{r PCs-table}
-kbl(top.loadings.table,
-    caption = "(ref:PCs-table-cap)",
-    row.names = T) %>% 
-  kable_styling(full_width = T,
-                latex_options = "HOLD_position") %>% 
-  kable_classic()
-```
+(ref:logistic-fits-plot-cap) Logistic regression fits for a) Ewin Run near Laurel Branch, WV, USA and b) the Blackwater River near Cortland, WV, USA. Black dots represent paired weekly average temperatures and red lines represent logistic regressions.
 
-## Logistic Model
-
-All parameters converged. Posterior predictive checks suggested little evidence of lack of fit between model estimates and data. Mean Bayesian p-values for mean and standard deviation were `r round(Weekly_Mean_Logistic_PPC_summ.table["Mean", 1], 2)` and `r round(Weekly_Mean_Logistic_PPC_summ.table["Mean", 2], 2)`. Linear and nonlinear models performed quite similarly, and the three metrics of model fit did not consistently favor one model over the other. The nonlinear had a slightly higher mean R$^2$ than the linear model (`r round(model_fits.table["Weekly_LM", "R2"], 2)` vs. `r round(model_fits.table["Weekly_Logistic", "R2"], 2)`), but the linear model had lower RMSE (`r round(model_fits.table["Weekly_LM", "RMSE"], 2)` vs. `r round(model_fits.table["Weekly_Logistic", "RMSE"], 2)`, Appendix ). Posterior predictive checks were nearly identical between the two models.
-
-### Thermal Sensitivity
-Logistic regression slopes varied from `r round(min(weekly_nonlinear_slopes.table$mean), 2)` (95% HPDI: to ) to `r round(max(weekly_nonlinear_slopes.table$mean), 2)` (95% HPDI: to ), with an average slope of `r round(mean(weekly_nonlinear_slopes.table$mean), 2)` (Fig. \@ref(fig:logistic-fits-plot)). These slopes were highly correlated with slopes from the linear regression (`r round(cor(weekly_linear_slopes.table$mean, weekly_nonlinear_slopes.table$mean, method = "pearson"), 2)`, Pearson's). Slopes were heterogeneous in space (Fig. \@ref(fig:slopes-map)), and several sites had particularly low and high slopes, indicating certain habitats with thermal stability or thermal elasticity. A latitudinal gradient was apparent, with lower slopes generally present at  southerly sites. There was also evidence of spatial autocorrelation in thermal sensitivity (Appendix \@ref(fig:logistic-weekly-betas-semivariogram-plot)). $\bm{\beta}$ was correlated with the range of stream temperatures experienced at a site (Appendix \@ref(fig:nonlinear-betas-corr-plot)), corroborating the idea that small $\bm{\beta}$ equates to thermal stability.
-
-(ref:logistic-fits-plot-cap) Logistic regression fits for a) Ewin Run near Laurel Branch, WV, USA and b) Blackwater River near Cortland, WV, USA. Black dots represent paired weekly average temperatures and red lines represent logistic regressions.
-```{r logistic-fits-plot, fig.cap="(ref:logistic-fits-plot-cap)"}
+```{r logistic-fits-plot, fig.cap="(ref:logistic-fits-plot-cap)", fig.height=3, fig.width=6, warning=F}
 plot_grid(lowest_beta.plot,
           highest_beta.plot,
           labels = c("a)", "b)"),
@@ -32,25 +15,51 @@ plot_grid(lowest_beta.plot,
           nrow = 1)
 ```
 
-```{r slopes-map, fig.cap="Air-water temperature slopes for each of 203 measurement sites. Slopes are $\bm{\beta}$ values from the nonlear model of maximum weekly temperatures."}
+## Logistic Model
+Posterior predictive checks suggested little evidence of lack of fit between model estimates and data. Mean Bayesian p-values for mean and standard deviation were `r round(Weekly_Mean_Logistic_PPC_summ.table["Mean", 1], 2)` and `r round(Weekly_Mean_Logistic_PPC_summ.table["Mean", 2], 2)`. The nonlinear model had a mean R$^2$ of `r round(model_fits.table["Weekly_Logistic", "R2"], 2)` and an RMSE of `r round(model_fits.table["Weekly_Logistic", "RMSE"], 2)`. 
+
+Thermal sensitivity differed greatly among the 203 sites, with some evidence of thermal stability and thus thermal refugia. Logistic regression slopes (model $\bm{\beta}$) varied from `r round(min(weekly_nonlinear_slopes.table$mean), 2)` (95% HPDI: `r round(weekly_nonlinear_slopes.table[which.min(weekly_nonlinear_slopes.table$mean), 4], 2)` to `r round(weekly_nonlinear_slopes.table[which.min(weekly_nonlinear_slopes.table$mean), 5], 2)`) to `r round(max(weekly_nonlinear_slopes.table$mean), 2)` (95% HPDI: `r round(weekly_nonlinear_slopes.table[which.max(weekly_nonlinear_slopes.table$mean), 4], 2)` to `r round(weekly_nonlinear_slopes.table[which.max(weekly_nonlinear_slopes.table$mean), 5], 2)`), with an average slope of `r round(mean(weekly_nonlinear_slopes.table$mean), 2)` (Fig. \@ref(fig:logistic-fits-plot)). These values were correlated with the range of stream temperatures experienced at a site (Appendix \@ref(fig:nonlinear-betas-corr-plot)), demonstrating the utility of this metric as a measure of thermal sensitivity. Logistic regression slopes were also correlated with the minimum and maximum stream temperatures experienced at a site (-0.68 and 0.72, Appendix \@ref(fig:nonlinear-betas-corr-plot)). Slopes were heterogeneous in space, and a latitudinal gradient was apparent, with lower slopes generally present at southerly sites (Fig. \@ref(fig:slopes-map)). Outlying therma refuga were also present in West Virginia and Maryland. Thermal sensitivity was spatially autocorrelated (Appendix \@ref(fig:logistic-weekly-betas-semivariogram-plot)), where nearer sites had more similar thermal sensitivity than farther sites (Fig. \@ref(fig:slopes-map)).
+
+(ref:slopes-map-cap) Air-water temperature slopes for each of 203 measurement sites. Slopes are $\bm{\beta}$ values from the nonlinear model of weekly mean water temperatures, with smaller beta values equating to less sensitivity to changes in air temperatures (i.e., thermal refugia). 
+
+```{r slopes-map, fig.cap="(ref:slopes-map-cap)"}
 betas_map.plot
 ```
 
-Correlation analysis demonstrated an association between thermal sensitivity (as measured by the nonlinear regression using weekly temperatures) and local landscape. Thermal sensitivity was most closely correlated with segment slope, baseflow index (an estimate of groundwater influence), winter flow, and stream segment location and drainage area (Table \@ref(tab:weekly-logistic-betas-corr-table)). Using Eq. \@ref(eq:C-phi), we inferred the contribution of landscape variables to the estimated slope of thermal sensitivity. Principal components of landscape variables explained 99% of variance in $\bm{\phi}$, the measures of the steepest slope in Eq. \@ref(eq:MohseniModel).
+## Landscape Effects on Thermal Sensitivity
+Landscape characteristics varied in their influence on stream thermal sensitivity, and our two methods of classification provided complementary results. Loadings for the first five PCs identified early summer and winter stream velocity as most influential for thermal sensitivity. January and February stream velocity were negatively related to thermal sensitivity, and stream velocity in May, June, and July were positively related to thermal sensitivity. Our correlation analysis revealed that stream thermal sensitivity was negatively correlated with baseflow index (-0.45) and positively correlated with latitude (0.44), March streamflow (0.4), and watershed area (0.4). 
 
-### Landscape Effects on Thermal Sensitivity
-Principal components of landscape characteristics varied in their influence on stream thermal sensitivity. The $\theta$ value for PC3, characterized by latitude, longitude, baseflow index, precipitation, minimum air temperature, and winter stream velocity (Table \@ref(tab:PCs-table)), was significantly negative with a posterior mean value of `r round(nonlinear_thetas.table[3, "mean"], 2)` (95% HPDI: `r round(nonlinear_thetas.table[3,4], 2)` to `r round(nonlinear_thetas.table[3,5], 2)`). The $\theta$ value for PC5, characterized by soils, slope, landcover, and water table depth, was significantly positive with a posterior mean value of `r round(nonlinear_thetas.table[5, "mean"], 2)` (95% HPDI: `r round(nonlinear_thetas.table[5,4], 2)` to `r round(nonlinear_thetas.table[5,5], 2)`). The posterior mean $\theta$ values for PC1 and PC4 were positive and for PC2 were negative, but 95% HPDIs overlapped with 0 (Fig. \@ref(fig:nonlinear-theta-posteriors-plot)).
+The principal components analysis reduced dimensionality of landscape variables among the stream segments. The first principal component was dominated by estimates of monthly and annual stream flow (Table \@ref(tab:PCs-table)). The second principal component was made up of metrics of summer stream velocity. The third principal component included site coordinates, baseflow index, precipitation, minimum air temperature estimates, and winter stream velocity. The fourth principal component included more winter stream velocity in addition to mean and maximum air temperature estimates. The fifth and final principal component was dominated by measures of soil moisture, urban and deciduous landcover, and local colluviated (unconsolidated) sediment.
 
-(ref:nonlinear-theta-posteriors-plot-cap) Full posterior distributions for Eq. \@ref(eq:PCALinear) $\bm{\theta}$ values. $\bm{\theta}$ represent the contributions of principal components 1-5 to $\bm{\phi}$, the measure of maximum slope of the nonlinear equation (Eq. \@ref(eq:MohseniModel)).
+(ref:PCs-table-cap) Top five principal components (PCs) and variance explained (R$^2$). The top ten contributing variables for each principal component are included. "Q" variables refer to stream flow metrics during specified periods of the year (numbers = months and MA = mean annual), and "V" variables refer to stream velocity. Variable definitions are available in Appendix \@ref(variable-definitions), and further descriptions may be found in the [NHDPlus User Guide](https://pubs.er.usgs.gov/publication/ofr20191096) and [EPA StreamCat](https://www.epa.gov/national-aquatic-resource-surveys/streamcat-metrics-and-definitions) database.
+
+\spacing{1}
+
+```{r PCs-table}
+kbl(top.loadings.table2,
+    caption = "(ref:PCs-table-cap)",
+    row.names = F,
+    col.names = c(rep(c("Variable", "Loading"),5)),
+    digits = 2) %>% 
+  add_header_above(c("PC1: 29" = 2, "PC2: 12.2" = 2, "PC3: 8.2" = 2, "PC4: 7.7" = 2, "PC5: 3.2" = 2)) %>% 
+  kable_styling(font_size = 8,
+                latex_options = "HOLD_position") %>%
+  kable_classic()
+```
+\spacing{1.5}
+
+The first five principal components of landscape variables explained `r round(pca_summary.table["Cumulative R2", "PC5"], 3) * 100`% of the variance in predictors (Table \@ref(tab:PCs-table)) and 99% of variance in $\bm{\phi}$, the measures of the steepest slope in Eq. \@ref(eq:MohseniModel). $\theta$ values for PC2, PC3, and PC4 (Table \@ref(tab:PCs-table)) were significantly negative with posterior means of `r round(nonlinear_thetas.table[2, "mean"], 3)` (95% HPDI: `r round(nonlinear_thetas.table[2,4], 3)` to `r round(nonlinear_thetas.table[2,5], 4)`; Fig. \@ref(fig:nonlinear-theta-posteriors-plot)), `r round(nonlinear_thetas.table[3, "mean"], 3)` (95% HPDI: `r round(nonlinear_thetas.table[3,4], 3)` to `r round(nonlinear_thetas.table[3,5], 4)`), and `r round(nonlinear_thetas.table[4, "mean"], 3)` (95% HPDI: `r round(nonlinear_thetas.table[4,4], 3)` to `r round(nonlinear_thetas.table[4,5], 3)`). The posterior distribution of $\theta$ for PC5 was significantly positive, with a mean of `r round(nonlinear_thetas.table[5, "mean"], 3)` (95% HPDI: `r round(nonlinear_thetas.table[5,4], 4)` to `r round(nonlinear_thetas.table[5,5], 3)`).
+
+(ref:nonlinear-theta-posteriors-plot-cap) Full posterior distributions for $\bm{\theta}$ values. $\bm{\theta}$ represent the contributions of principal components 1-5 to $\bm{\phi}$, the measure of maximum slope of the nonlinear equation (Eq. \@ref(eq:MohseniModel)).
 
 ```{r nonlinear-theta-posteriors-plot, fig.cap="(ref:nonlinear-theta-posteriors-plot-cap)"}
 nonlinear_theta_posteriors.plot
 ```
 
-### Predictions of Thermal Sensitivity
-We predicted thermal sensitivity at unsampled brook trout habitat throughout the study region using Eq. \@ref(eq:MohseniModel). Predicted $\bm{\beta}$ ranged from `r round(min(trout_site_nonlinear_betas.table$pstr_mean_nonlinear_beta), 2)` (95% CI: `r round(trout_site_nonlinear_betas.table[which.min(trout_site_nonlinear_betas.table$pstr_mean_nonlinear_beta), 3], 2)` to `r round(trout_site_nonlinear_betas.table[which.min(trout_site_nonlinear_betas.table$pstr_mean_nonlinear_beta), 4], 2)`) to `r round(max(trout_site_nonlinear_betas.table$pstr_mean_nonlinear_beta), 2)` (95% CI: `r round(trout_site_nonlinear_betas.table[which.max(trout_site_nonlinear_betas.table$pstr_mean_nonlinear_beta), 3], 2)` to `r round(trout_site_nonlinear_betas.table[which.max(trout_site_nonlinear_betas.table$pstr_mean_nonlinear_beta), 4], 2)`) at these sites, and varied greatly across the study region (Fig. \@ref(fig:beta-predictions-plot)). Among others, the Monongahela National Forest and the Great Smoky Mountains were predicted to have particularly stable stream temperatures. A latitudinal gradient in slopes was also apparent here, further demonstrating the influence of latitude on thermal sensitivity. Our predictions highlighted several sites likely to have exceptionally stable or elastic thermal patterns. Defining preferred thermal habitat as the lowest 25th percentile of predicted thermal stability values, we found that 63% of preferred thermal habitat lies within protected areas.
+## Predictions of Thermal Sensitivity
+We predicted thermal sensitivity at stream segments of unsampled brook trout habitat throughout the study region using Eq. \@ref(eq:MohseniModel). Predicted $\bm{\beta}$ ranged from `r round(min(trout_site_nonlinear_betas.table$pstr_mean_nonlinear_beta), 2)` (95% CI: `r round(trout_site_nonlinear_betas.table[which.min(trout_site_nonlinear_betas.table$pstr_mean_nonlinear_beta), 3], 2)` to `r round(trout_site_nonlinear_betas.table[which.min(trout_site_nonlinear_betas.table$pstr_mean_nonlinear_beta), 4], 2)`) to `r round(max(trout_site_nonlinear_betas.table$pstr_mean_nonlinear_beta), 2)` (95% CI: `r round(trout_site_nonlinear_betas.table[which.max(trout_site_nonlinear_betas.table$pstr_mean_nonlinear_beta), 3], 2)` to `r round(trout_site_nonlinear_betas.table[which.max(trout_site_nonlinear_betas.table$pstr_mean_nonlinear_beta), 4], 2)`) at these sites, and varied greatly across the study region (Fig. \@ref(fig:beta-predictions-plot)). Our predictions highlighted several areas most likely to serve as thermal refugia. Among others, the Pendleton County, West Virginia, Nantahala National Forest in North Carolina, and the Great Smoky Mountains in North Carolina and Tennessee were predicted to have particularly stable stream temperatures. Defining preferred thermal habitat as the lowest 25th percentile of predicted thermal sensitivity values, we found that 63% (1,367 of 2,175 sites) of preferred thermal habitat lies within protected areas. This compares to 54% (4,724 of 8,695 sites) of brook trout habitat.
 
-(ref:beta-predictions-plot) Predicted stream thermal stability at 8,660 sites of brook trout habitat in the southeastern USA. Thermal stability was predicted using posterior estimates from Eqs. \@ref(eq:PCALinear) and \@ref(eq:MohseniModel), as well as spatially interpolated minimum and maximum stream temperatures. 
+(ref:beta-predictions-plot) Predicted stream thermal sensitivity at 8,695 stream segments of brook trout habitat in the southern and central Appalachian region, USA. Thermal sensitivity was predicted using posterior estimates from Eqs. \@ref(eq:PCALinear) and \@ref(eq:MohseniModel), as well as spatially interpolated minimum and maximum stream temperatures. 
 
 ```{r beta-predictions-plot, fig.cap="(ref:beta-predictions-plot)"}
 nonlinear_betas_pred_map.plot
