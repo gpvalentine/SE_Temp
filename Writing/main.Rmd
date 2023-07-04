@@ -60,10 +60,10 @@ LANDSCAPE INFLUENCES ON THERMAL SENSITIVITY AND PREDICTED SPATIAL VARIABILITY AM
 
 George P. Valentine\footnote{Dept. of Fish, Wildlife, \& Conservation Biology, Colorado State University, Fort Collins, Colorado 80523 USA}\footnote{Graduate Degree Program in Ecology, Colorado State University, Fort Collins, Colorado 80523 USA},
 Xinyi Lu\footnotemark[1],
-C. Andrew Dolloff\footnote{U.S. Forest Service Southern Research Station, Dept. of Fisheries and Wildlife , Virginia Polytechnic Institute and State University, Blacksburg, Virginia, 24061, USA},
+C. Andrew Dolloff\footnote{U.S. Forest Service Southern Research Station, Dept. of Fisheries and Wildlife, Virginia Polytechnic Institute and State University, Blacksburg, Virginia, 24061, USA},
 Craig N. Roghair\footnotemark[3],
 Jacob M. Rash\footnote{Div. of Inland Fisheries, North Carolina Wildlife Resources Commission, 645 Fish Hatchery Road, Marion, NC, 28752, USA},
-Mevin B. Hooten\footnote{Dept. Statistics \& Data Sciences, The University of Texas at Austin, Austin, Texas 78712 USA},
+Mevin B. Hooten\footnote{Dept. of Statistics \& Data Sciences, The University of Texas at Austin, Austin, Texas 78712 USA},
 Yoichiro Kanno\footnotemark[1]\footnotemark[2]
 \renewcommand{\thefootnote}{\fnsymbol{footnote}}
 \footnote[1]{Corresponding Author: yoichiro.kanno@colostate.edu}
@@ -74,6 +74,11 @@ Yoichiro Kanno\footnotemark[1]\footnotemark[2]
 \end{center}
 
 \vfill
+
+\newpage
+
+# Acknowledgements
+This research was funded by Cooperative Agreement No. G21AC10205 from the U.S. Geological Survey Southeast Climate Adaptation Science Center, and Cooperative Agreement F20AC11372 from the U.S. Fish and Wildlife Service. The findings and conclusions in this paper are those of the authors and do not necessarily represent the views of the U.S. Fish and Wildlife Service. The authors certify that they have no conflicting interests, financial or otherwise, that might be perceived as influencing their objectivity.
 
 \newpage
 
@@ -105,7 +110,7 @@ Yoichiro Kanno\footnotemark[1]\footnotemark[2]
 
 \newpage
 
-# References
+# References {-}
 
 ```{r biblio, child = 'bibliography.Rmd'}
 ```
