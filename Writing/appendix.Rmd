@@ -73,16 +73,16 @@ plot_grid(min_interpolated_map.plot,
 
 \newpage
 
-(ref:logistic-weekly-betas-semivariogram-plot-cap) Semivariogram depicting spatial structure in thermal sensitivity at 203 sites. Slopes (model $\beta$s) are posterior means of the nonlinear model of weekly maximum temperatures.
+(ref:nonlinear-betas-corr-plot-cap) Pearson's correlations between nonlinear and linear model $\bm{\beta}$ and minimum, maximum, and range of weekly mean stream temperatures.
 
-```{r logistic-weekly-betas-semivariogram-plot, fig.cap="(ref:logistic-weekly-betas-semivariogram-plot-cap)"}
-logistic_weekly_betas_semivariogram.plot
+```{r nonlinear-betas-corr-plot, fig.cap="(ref:nonlinear-betas-corr-plot-cap)"}
+corrplot::corrplot(cor(nonlinear_betas_corr.table), method = 'number')
 ```
 
 \newpage
 
-(ref:nonlinear-betas-corr-plot-cap) Pearson's correlations between nonlinear and linear model $\bm{\beta}$ and minimum, maximum, and range of weekly mean stream temperatures.
+(ref:logistic-weekly-betas-semivariogram-plot-cap) Semivariogram depicting spatial structure in thermal sensitivity at 203 sites. Slopes (model $\beta$s) are posterior means of the nonlinear model of weekly maximum temperatures.
 
-```{r nonlinear-betas-corr-plot, fig.cap="(ref:nonlinear-betas-corr-plot-cap)"}
-corrplot::corrplot(cor(betas_corr.table), method = 'number')
+```{r logistic-weekly-betas-semivariogram-plot, fig.cap="(ref:logistic-weekly-betas-semivariogram-plot-cap)"}
+logistic_weekly_betas_semivariogram.plot
 ```
