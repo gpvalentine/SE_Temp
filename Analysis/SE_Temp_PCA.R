@@ -906,6 +906,12 @@ ggplot() +
 # COMID with 2nd lowest slope
 low_beta_COMID.val <- arrange(Weekly_Logistic_betas, mean)[2,2]
 
+# what was the average water temp here?
+x <- NS204_temps_weekly_filtered %>% 
+  filter(COMID == low_beta_COMID.val) %>%
+  dplyr::select(WaterTemp_c_MEAN)
+mean(x$WaterTemp_c_MEAN, na.rm = T)
+
 # Create an empty dataframe to store predicted watertemp data for lowest beta COMID
 watertemp_pred_weekly_lowBeta.table <- data.frame(WaterTemp_Mean_pred = numeric())
 
@@ -1608,13 +1614,13 @@ trout_site_nonlinear_betas.table <- nonlinear_beta_pstrs %>%
 trout_site_nonlinear_betas.table %>% 
   filter(COMID %in% weekly_nonlinear_slopes.table$COMID)
 
+library(PerformanceAnalytics)
+
 weekly_nonlinear_slopes.table %>% 
   left_join(trout_site_nonlinear_betas.table) %>%
   dplyr::select(mean,
-                pstr_mean_nonlinear_beta) %>%
-  #view()
-  cor(method = "spearman",
-      use = "pairwise.complete.obs")
+                pstr_mean_nonlinear_beta) %>% 
+  chart.Correlation(method = "spearman")
 
 # what variables are betas correlated with?
 nonlinear_beta_corrs <- data.frame(corr = cor(trout_site_nonlinear_betas.table[,c(2:178)], method = "spearman", use = "pairwise.complete.obs")[1,]) %>% 

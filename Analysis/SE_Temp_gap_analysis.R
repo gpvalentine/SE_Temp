@@ -74,8 +74,18 @@ BKT_hab_betas_lowest <- BKT_hab_betas %>%
   filter(Percentile <= 25)
 
 # the best BKT sites in protected areas:
-BKT_sites_PAs <- BKT_hab_betas_lowest %>% 
+top_BKT_sites_PAs <- BKT_hab_betas_lowest %>% 
   filter(COMID %in% PA_StreamSegments$COMID)
 
 # % best BKT sites in protected areas:
-nrow(BKT_sites_PAs)/nrow(BKT_hab_betas_lowest)
+nrow(top_BKT_sites_PAs)/nrow(BKT_hab_betas_lowest)
+
+# all BKT sites in protected areas
+BKT_sites_PAs <- BKT_Habitat_StreamSegment_covars2 %>% 
+  filter(COMID %in% PA_StreamSegments$COMID)
+# % of BKT sites in protected areas
+nrow(BKT_sites_PAs)/nrow(BKT_Habitat_StreamSegment_covars2)
+
+# Chi-squared test
+mat <- matrix(data = c(nrow(top_BKT_sites_PAs), nrow(BKT_hab_betas_lowest), nrow(BKT_sites_PAs), nrow(BKT_Habitat_StreamSegment_covars)), nrow = 2 , ncol = 2 , byrow = TRUE)
+chisq.test(mat, simulate.p.value = TRUE)

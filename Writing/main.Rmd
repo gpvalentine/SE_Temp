@@ -110,6 +110,14 @@ This research was funded by Cooperative Agreement No. G21AC10205 from the U.S. G
 
 \newpage
 
+# Conflict of interest statement {-}
+The authors have no conflicts of interest to declare.
+
+# Data and Code Availability {-}
+Data are archived at sciencebase.gov. Code can be found online at github.com/gpvalentine/SE_Temp.
+
+\newpage
+
 # References {-}
 
 ```{r biblio, child = 'bibliography.Rmd'}
